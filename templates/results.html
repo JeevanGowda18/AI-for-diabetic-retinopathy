@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header & Actions -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h3 class="fw-bold mb-0 text-navy" style="color: #0F2B48;">{{ t.res_title }}</h3>
+        <span class="badge bg-secondary">{{ scr.screening_id }}</span>
+      </div>
+      <p class="text-muted small mb-0">Screened on {{ scr.created_at|format_datetime }} &bull; Rural Health Post: {{ phc_info.center_name }}</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();">
+        <i class="bi bi-printer-fill me-1"></i> {{ t.btn_print }}
+      </button>
+      <a href="{{ url_for('reports.download_pdf', screening_id=scr.screening_id) }}" class="btn btn-medical-primary btn-sm shadow-sm" target="_blank">
+        <i class="bi bi-file-earmark-pdf-fill me-1"></i> {{ t.btn_download_pdf }}
+      </a>
+      <a href="{{ url_for('screening.new_screening') }}" class="btn btn-medical-teal btn-sm shadow-sm">
+        <i class="bi bi-plus-circle-fill me-1"></i> Next Patient
+      </a>
+    </div>
+  </div>
+
+  <!-- Patient Summary Card -->
+  <div class="medical-card p-3 mb-4 bg-white border">
+    <div class="row g-3 align-items-center">
+      <div class="col-12 col-md-3">
+        <span class="text-muted small d-block">Patient Name & ID</span>
+        <strong class="text-navy" style="color: #0F2B48;">{{ scr.patient_name }}</strong>
+        <span class="text-muted small">({{ scr.patient_code }})</span>
+      </div>
+      <div class="col-6 col-md-2">
+        <span class="text-muted small d-block">Age / Gender</span>
+        <strong>{{ scr.age }} yrs / {{ scr.gender }}</strong>
+      </div>
+      <div class="col-6 col-md-2">
+        <span class="text-muted small d-block">Village / Contact</span>
+        <span>{{ scr.village }}</span>
+        <div class="text-muted small">{{ scr.mobile }}</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <span class="text-muted small d-block">Diabetes Clinical Context</span>
+        <span>{{ scr.diabetes_history }} ({{ scr.duration_diabetes_years }} yrs)</span>
+        {% if scr.blood_glucose_level %}
+          <div class="text-muted small">RBS: {{ scr.blood_glucose_level }} mg/dL</div>
+        {% endif %}
+      </div>
+      <div class="col-6 col-md-2 text-md-end">
+        <span class="text-muted small d-block">Eye Evaluated</span>
+        <span class="badge bg-light text-dark border fs-6 px-3 py-1">{{ scr.eye_side }} Eye ({{ 'OD' if scr.eye_side == 'Right' else 'OS' }})</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Primary Diagnostic Verdict Alert Box -->
+  <div class="card border-0 shadow-sm mb-4" style="border-radius: 0.75rem; background: linear-gradient(135deg, {% if scr.predicted_grade == 0 %}#F0FDF4 0%, #DCFCE7 100%{% elif scr.predicted_grade == 1 %}#F0F9FF 0%, #E0F2FE 100%{% elif scr.predicted_grade == 2 %}#FFFBEB 0%, #FEF3C7 100%{% elif scr.predicted_grade == 3 %}#FEF2F2 0%, #FEE2E2 100%{% else %}#FAF5FF 0%, #F3E8FF 100%{% endif %});">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+          <span class="text-uppercase fw-bold small text-muted" style="letter-spacing: 0.8px;">AI Classification Verdict</span>
+          <h2 class="fw-bold mb-1" style="color: #0F2B48;">
+            {{ grade_meta.name }} &mdash; <span class="fw-normal fs-4">{{ grade_meta.severity }}</span>
+          </h2>
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <span class="badge {{ grade_meta.badge }} fs-6 px-3 py-1">
+              Referral Urgency: {{ grade_meta.referral_urgency }}
+            </span>
+            <span class="badge bg-white text-dark border fs-6 px-3 py-1">
+              AI Confidence: <strong>{{ (scr.confidence_score * 100)|round(1) }}%</strong>
+            </span>
+            <span class="badge bg-white text-muted border small">
+              Quality Score: {{ scr.quality_score|round(1) }}/100 ({{ scr.quality_status }})
+            </span>
+          </div>
+        </div>
+
+        <div class="text-md-end">
+          <div class="small text-muted mb-1">Model Inference Pipeline</div>
+          <span class="badge bg-dark-subtle text-dark border">
+            {% if scr.model_mode == 'demo_calibrated' %}
+              Demonstration Mode (Calibrated Synthetic Model)
+            {% else %}
+              Production Model (Trained Weights Active)
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4-Quadrant Retinal Image Comparison Gallery -->
+  <div class="row g-4 mb-4">
+    <!-- 1. Original Retinal Image -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="medical-card h-100 p-3 text-center">
+        <h6 class="fw-bold text-navy mb-2" style="color: #0F2B48;">1. Original Fundus</h6>
+        <div class="bg-black rounded overflow-hidden" style="height: 250px;">
+          <img src="{{ url_for('static', filename=scr.original_image_path.replace('static/', '')) }}" alt="Original Fundus" class="w-100 h-100 object-fit-contain">
+        </div>
+        <p class="text-muted small mt-2 mb-0">Direct optical capture from PHC fundus scope</p>
+      </div>
+    </div>
+
+    <!-- 2. Processed LAB CLAHE Image -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="medical-card h-100 p-3 text-center">
+        <h6 class="fw-bold text-navy mb-2" style="color: #0F2B48;">2. Enhanced (LAB CLAHE)</h6>
+        <div class="bg-black rounded overflow-hidden" style="height: 250px;">
+          <img src="{{ url_for('static', filename=scr.processed_image_path.replace('static/', '')) }}" alt="Processed Fundus" class="w-100 h-100 object-fit-contain">
+        </div>
+        <p class="text-muted small mt-2 mb-0">Local contrast enhancement on Lightness channel</p>
+      </div>
+    </div>
+
+    <!-- 3. Grad-CAM Explainability Attention Map -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="medical-card h-100 p-3 text-center border-teal">
+        <h6 class="fw-bold text-teal mb-2">3. Grad-CAM Attention Map</h6>
+        <div class="bg-black rounded overflow-hidden position-relative" style="height: 250px;">
+          <img src="{{ url_for('static', filename=scr.gradcam_image_path.replace('static/', '')) }}" alt="Grad-CAM Saliency" class="w-100 h-100 object-fit-contain">
+          <span class="position-absolute bottom-0 start-0 m-2 badge bg-dark bg-opacity-75 text-white small" style="font-size: 0.68rem;">
+            Red = Highest Saliency
+          </span>
+        </div>
+        <p class="text-muted small mt-2 mb-0">Deep convolutional gradient attention overlay</p>
+      </div>
+    </div>
+
+    <!-- 4. Retinal Structure & Candidate Lesions (CV Analysis) -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="medical-card h-100 p-3 text-center">
+        <h6 class="fw-bold text-navy mb-2" style="color: #0F2B48;">4. Anatomical CV Analysis</h6>
+        <div class="bg-black rounded overflow-hidden" style="height: 250px;">
+          <img src="{{ url_for('static', filename=scr.cv_analysis_path.replace('static/', '')) }}" alt="Computer Vision Structures" class="w-100 h-100 object-fit-contain">
+        </div>
+        <p class="text-muted small mt-2 mb-0">Vessels (cyan), Disc (cyan ring), Fovea (yellow)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Diagnostic Findings & 5-Class Probabilities -->
+  <div class="row g-4 mb-4">
+    <!-- 5-Class Probability Distribution Chart -->
+    <div class="col-12 col-lg-6">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold mb-3 text-navy" style="color: #0F2B48;">
+          <i class="bi bi-bar-chart-fill text-teal me-2"></i> {{ t.res_probabilities }}
+        </h5>
+        <div style="height: 220px; position: relative;">
+          <canvas id="probDistChart"></canvas>
+        </div>
+        <div class="text-muted small mt-3 pt-2 border-top">
+          Horizontal bar graph indicates the softmax probability output for each international ICDR severity grade.
+        </div>
+      </div>
+    </div>
+
+    <!-- Grad-CAM Interpretation & Clinical Referral Protocol -->
+    <div class="col-12 col-lg-6">
+      <div class="medical-card p-4 h-100 d-flex flex-column justify-content-between">
+        <div>
+          <!-- Explainability Summary -->
+          <h5 class="fw-bold mb-2 text-navy" style="color: #0F2B48;">
+            <i class="bi bi-diagram-3-fill text-teal me-2"></i> {{ t.res_gradcam_title }}
+          </h5>
+          <div class="bg-light p-3 rounded-3 mb-3 border">
+            <p class="small text-secondary mb-1">
+              <strong>Visual Explanation:</strong> {{ scr.screening_notes or 'Grad-CAM heatmaps highlight retinal areas whose convolutional activations most heavily supported the predicted grade.' }}
+            </p>
+            <p class="small text-muted mb-0" style="font-size: 0.78rem;">
+              <i class="bi bi-info-circle me-1"></i> Grad-CAM indicates neural network attention; it is not a direct histological stain or independent medical diagnosis.
+            </p>
+          </div>
+
+          <!-- Clinical Referral Protocol Box -->
+          <h6 class="fw-bold text-navy mb-2" style="color: #0F2B48;">
+            <i class="bi bi-clipboard2-pulse-fill text-teal me-2"></i> {{ t.res_clinical_rec }}
+          </h6>
+          <div class="p-3 rounded-3 border" style="background-color: {% if scr.predicted_grade >= 2 %}#FFF5F5; border-color: #FEB2B2;{% else %}#F0FDF4; border-color: #BBF7D0;{% endif %}">
+            <div class="fw-bold mb-1 {% if scr.predicted_grade >= 2 %}text-danger{% else %}text-success{% endif %}">
+              {{ grade_meta.recommendation_en }}
+            </div>
+            
+            {% if current_lang == 'kn' %}
+              <div class="small text-muted border-top pt-2 mt-2">
+                <strong>ಕನ್ನಡ ಮಾರ್ಗಸೂಚಿ:</strong> {{ grade_meta.recommendation_kn }}
+              </div>
+            {% elif current_lang == 'hi' %}
+              <div class="small text-muted border-top pt-2 mt-2">
+                <strong>हिन्दी निर्देश:</strong> {{ grade_meta.recommendation_hi }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Download & Print CTA -->
+        <div class="mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
+          <a href="{{ url_for('reports.download_pdf', screening_id=scr.screening_id) }}" class="btn btn-medical-primary" target="_blank">
+            <i class="bi bi-download me-1"></i> {{ t.btn_download_pdf }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medical Legal Disclaimer Card -->
+  <div class="alert alert-secondary p-3 mb-4" style="background-color: #F8FAFC; border-color: #E2E8F0;">
+    <div class="d-flex align-items-start gap-2">
+      <i class="bi bi-shield-shaded text-secondary fs-5 mt-1"></i>
+      <div class="small text-secondary">
+        <strong>CLINICAL DECISION SUPPORT NOTICE:</strong> {{ t.res_disclaimer }}
+        This system is engineered to triage at-risk patients in rural Primary Health Centres (PHCs). Final diagnosis, mydriatic examination, and laser/anti-VEGF clinical management must be conducted under the care of a certified ophthalmologist.
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const probs = {{ probabilities|tojson }};
+    initProbabilityChart('probDistChart', probs);
+});
+</script>
+{% endblock %}

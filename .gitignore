@@ -1,0 +1,72 @@
+# ==============================================================================
+# DR Vision AI - Git Ignore Configuration
+# ==============================================================================
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+
+# Environment Variables & Secrets
+.env
+.env.*
+*.secret
+
+# Local Database & Instance folder
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Deep Learning Model Weights (Avoid tracking 100MB+ binaries in Git)
+*.pth
+*.pt
+*.bin
+*.onnx
+*.h5
+*.ckpt
+models/*.pth
+models/*.pt
+
+# Temporary screening uploads & session artifacts
+static/uploads/temp_*
+static/uploads/orig_*
+static/uploads/*_DR-*
+static/uploads/*_test_*
+
+# Dynamic screening reports (preserve initial sample demonstration PDFs)
+static/uploads/SCR-2026-010[6-9]_*
+static/uploads/SCR-2026-011[0-9]_*
+static/uploads/SCR-2026-0106_report.pdf
+static/uploads/SCR-2026-0107_report.pdf
+static/uploads/SCR-2026-0108_report.pdf
+static/uploads/SCR-2026-0109_report.pdf
+static/uploads/SCR-2026-0110_report.pdf
+
+# Keep essential sample demonstration fundus photographs and base reports
+!static/uploads/sample_*.jpg
+!static/uploads/SCR-2026-0101_report.pdf
+!static/uploads/SCR-2026-0102_report.pdf
+!static/uploads/SCR-2026-0103_report.pdf
+!static/uploads/SCR-2026-0104_report.pdf
+!static/uploads/SCR-2026-0105_report.pdf
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log

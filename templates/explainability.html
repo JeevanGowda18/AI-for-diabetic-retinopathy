@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1" style="color: #0F2B48;">{{ t.nav_explainability }}</h3>
+      <p class="text-muted small mb-0">Demystifying deep learning decisions in rural healthcare through Gradient-weighted Class Activation Mapping (Grad-CAM).</p>
+    </div>
+    <a href="{{ url_for('screening.new_screening') }}" class="btn btn-medical-teal btn-sm shadow-sm">
+      <i class="bi bi-camera-fill me-1"></i> {{ t.btn_start_screening }}
+    </a>
+  </div>
+
+  <!-- Educational Concept Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-8">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-2" style="color: #0F2B48;">
+          <i class="bi bi-lightbulb-fill text-teal me-2"></i> How Does Grad-CAM Explain Diabetic Retinopathy?
+        </h5>
+        <p class="text-secondary small">
+          Standard deep neural networks are often criticized as "black boxes" because they output a probability score without showing how they arrived at that decision. In rural healthcare, where healthcare workers and general practitioners triage patients without an on-site ophthalmologist, transparent explainability is mandatory for clinical trust and patient safety.
+        </p>
+
+        <div class="row g-3 mt-1">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <h6 class="fw-bold text-navy mb-1" style="font-size: 0.9rem;">
+                <i class="bi bi-1-circle-fill text-primary me-1"></i> Target Convolutional Layer
+              </h6>
+              <p class="text-muted small mb-0" style="font-size: 0.8rem;">
+                In our ResNet-50 architecture, Grad-CAM targets the final residual block (<code>layer4[-1]</code>), where spatial resolution is preserved alongside high-level semantic retinal features.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <h6 class="fw-bold text-navy mb-1" style="font-size: 0.9rem;">
+                <i class="bi bi-2-circle-fill text-primary me-1"></i> Gradient Backpropagation
+              </h6>
+              <p class="text-muted small mb-0" style="font-size: 0.8rem;">
+                Gradients of the predicted severity score \(Y^c\) are computed with respect to feature maps \(A^k\). Global average pooling calculates importance weights \(\alpha_k^c\) for each visual channel.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <h6 class="fw-bold text-navy mb-1" style="font-size: 0.9rem;">
+                <i class="bi bi-3-circle-fill text-primary me-1"></i> Weighted Activation Mapping
+              </h6>
+              <p class="text-muted small mb-0" style="font-size: 0.8rem;">
+                A linear combination of feature maps weighted by \(\alpha_k^c\) is passed through a ReLU activation to retain features that positively support the predicted diabetic retinopathy grade.
+              </p>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded-3 border h-100">
+              <h6 class="fw-bold text-navy mb-1" style="font-size: 0.9rem;">
+                <i class="bi bi-4-circle-fill text-primary me-1"></i> Thermal Colormap Overlay
+              </h6>
+              <p class="text-muted small mb-0" style="font-size: 0.8rem;">
+                The normalized saliency map is converted using a thermal colormap (JET) and alpha-blended over the fundus image: Red areas denote critical model focus; Blue areas denote low interest.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Critical Ethical Guardrails Card -->
+    <div class="col-12 col-lg-4">
+      <div class="medical-card p-4 h-100 border-amber" style="background-color: #FFFDF5;">
+        <h6 class="fw-bold text-warning-emphasis mb-3">
+          <i class="bi bi-shield-exclamation me-1"></i> Clinical Interpretation Guidelines
+        </h6>
+
+        <ul class="text-secondary small ps-3 mb-3" style="font-size: 0.82rem; line-height: 1.6;">
+          <li class="mb-2">
+            <strong>Neural Attention &ne; Histological Confirmation:</strong> Highlighted red regions represent areas that influenced the deep network's feature activations, not guaranteed lesion pathology.
+          </li>
+          <li class="mb-2">
+            <strong>Check for Flash Artifacts:</strong> Central corneal flash reflections or uneven illumination can occasionally attract spurious attention. The automated quality guard helps filter these out.
+          </li>
+          <li class="mb-2">
+            <strong>Anatomical Correlation:</strong> Look whether red heatmaps overlap with visible microaneurysms, blot hemorrhages, or exudate clusters.
+          </li>
+          <li>
+            <strong>Always Refer High Grades:</strong> Regardless of heatmap appearance, any patient flagged with Grade 2 or higher requires referral to a district ophthalmology centre.
+          </li>
+        </ul>
+
+        <div class="p-2 bg-white rounded border small text-muted text-center" style="font-size: 0.75rem;">
+          <i class="bi bi-check2-circle text-success me-1"></i> Complies with WHO AI Ethics for Health Guidelines
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Comparison Demonstration Gallery -->
+  <div class="medical-card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold text-navy mb-0" style="color: #0F2B48;">
+        <i class="bi bi-sliders text-teal me-2"></i> Interactive Clinical Visualizer: Normal vs Moderate vs Severe
+      </h5>
+      <span class="text-muted small">Compare original fundus, LAB CLAHE enhancement, and Grad-CAM attention</span>
+    </div>
+
+    <!-- Case Selector Tabs -->
+    <ul class="nav nav-pills mb-3" id="demoTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-normal-btn" data-bs-toggle="pill" data-bs-target="#tab-normal" type="button" role="tab">
+          Case A: Grade 0 (No DR)
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-mod-btn" data-bs-toggle="pill" data-bs-target="#tab-mod" type="button" role="tab">
+          Case B: Grade 2 (Moderate NPDR)
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-severe-btn" data-bs-toggle="pill" data-bs-target="#tab-severe" type="button" role="tab">
+          Case C: Grade 3 (Severe NPDR)
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-pdr-btn" data-bs-toggle="pill" data-bs-target="#tab-pdr" type="button" role="tab">
+          Case D: Grade 4 (Proliferative DR)
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="demoTabsContent">
+      
+      <!-- Normal Case Tab -->
+      <div class="tab-pane fade show active" id="tab-normal" role="tabpanel">
+        <div class="row g-3">
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">Original Optical Fundus</span>
+            <img src="{{ url_for('static', filename='uploads/sample_normal.jpg') }}" alt="Normal Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">LAB CLAHE Enhanced</span>
+            <img src="{{ url_for('static', filename='uploads/sample_normal_proc.jpg') }}" alt="Enhanced Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-teal d-block mb-1">Grad-CAM Model Attention</span>
+            <img src="{{ url_for('static', filename='uploads/sample_normal_gradcam.jpg') }}" alt="Grad-CAM" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+        </div>
+        <div class="alert alert-light border mt-3 mb-0 small">
+          <strong>Clinical Analysis:</strong> Normal retinal architecture with clean macula and sharp disc margins. The Grad-CAM attention is diffuse with no focal clusters on microvascular hemorrhages, confirming healthy retinal baseline.
+        </div>
+      </div>
+
+      <!-- Moderate Case Tab -->
+      <div class="tab-pane fade" id="tab-mod" role="tabpanel">
+        <div class="row g-3">
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">Original Optical Fundus</span>
+            <img src="{{ url_for('static', filename='uploads/sample_mod.jpg') }}" alt="Moderate Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">LAB CLAHE Enhanced</span>
+            <img src="{{ url_for('static', filename='uploads/sample_mod_proc.jpg') }}" alt="Enhanced Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-teal d-block mb-1">Grad-CAM Model Attention</span>
+            <img src="{{ url_for('static', filename='uploads/sample_mod_gradcam.jpg') }}" alt="Grad-CAM" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+        </div>
+        <div class="alert alert-warning border mt-3 mb-0 small">
+          <strong>Clinical Analysis:</strong> Moderate NPDR with hard exudates and microaneurysms. The Grad-CAM heatmap concentrates tightly on the temporal parafoveal arcade where lipid exudates and microvascular leaks reside.
+        </div>
+      </div>
+
+      <!-- Severe Case Tab -->
+      <div class="tab-pane fade" id="tab-severe" role="tabpanel">
+        <div class="row g-3">
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">Original Optical Fundus</span>
+            <img src="{{ url_for('static', filename='uploads/sample_severe.jpg') }}" alt="Severe Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">LAB CLAHE Enhanced</span>
+            <img src="{{ url_for('static', filename='uploads/sample_severe_proc.jpg') }}" alt="Enhanced Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-teal d-block mb-1">Grad-CAM Model Attention</span>
+            <img src="{{ url_for('static', filename='uploads/sample_severe_gradcam.jpg') }}" alt="Grad-CAM" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+        </div>
+        <div class="alert alert-danger border mt-3 mb-0 small">
+          <strong>Clinical Analysis:</strong> Severe NPDR meeting 4-2-1 criteria. Extensive intraretinal hemorrhages and cotton wool spots across multiple quadrants evoke intense multi-focal thermal hotspots in the Grad-CAM visualization.
+        </div>
+      </div>
+
+      <!-- Proliferative Case Tab -->
+      <div class="tab-pane fade" id="tab-pdr" role="tabpanel">
+        <div class="row g-3">
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">Original Optical Fundus</span>
+            <img src="{{ url_for('static', filename='uploads/sample_pdr.jpg') }}" alt="PDR Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-secondary d-block mb-1">LAB CLAHE Enhanced</span>
+            <img src="{{ url_for('static', filename='uploads/sample_pdr_proc.jpg') }}" alt="Enhanced Fundus" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+          <div class="col-12 col-md-4 text-center">
+            <span class="small fw-semibold text-teal d-block mb-1">Grad-CAM Model Attention</span>
+            <img src="{{ url_for('static', filename='uploads/sample_pdr_gradcam.jpg') }}" alt="Grad-CAM" class="w-100 rounded border bg-black" style="max-height: 280px; object-fit: contain;">
+          </div>
+        </div>
+        <div class="alert alert-dark border mt-3 mb-0 small">
+          <strong>Clinical Analysis:</strong> Sight-threatening Proliferative DR with neovascularization of the disc (NVD). Saliency heavily focuses on the peripapillary optic nerve head where abnormal vessels breach the internal limiting membrane. Emergency referral indicated.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

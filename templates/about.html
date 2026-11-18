@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header Banner -->
+  <div class="p-4 rounded-3 text-white mb-4" style="background: linear-gradient(135deg, #0F2B48 0%, #0D9488 100%);">
+    <div class="row align-items-center">
+      <div class="col-lg-9">
+        <span class="badge bg-light text-navy fw-bold mb-2 text-uppercase" style="color: #0F2B48;">Rural Healthcare AI Initiative</span>
+        <h2 class="fw-bold mb-2 text-white">Explainable AI for Diabetic Retinopathy Screening in Rural India</h2>
+        <p class="mb-0 opacity-90 fs-6">
+          Empowering Primary Health Centres (PHCs) with transparent, accessible, and clinically calibrated computer vision to prevent diabetes-related blindness.
+        </p>
+      </div>
+      <div class="col-lg-3 text-lg-end mt-3 mt-lg-0">
+        <a href="{{ url_for('screening.new_screening') }}" class="btn btn-light fw-bold px-4 py-2 text-navy" style="color: #0F2B48;">
+          <i class="bi bi-camera-fill me-1"></i> Launch Screening
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Problem Statement & Objectives -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-6">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-exclamation-octagon-fill text-danger me-2"></i> The Rural Healthcare Crisis
+        </h5>
+        <p class="text-secondary small leading-relaxed">
+          India is widely recognized as the diabetes capital of the world, with over 101 million citizens living with diabetes and an additional 136 million with pre-diabetes. Diabetic Retinopathy (DR) is a microvascular complication of diabetes that damages the delicate blood vessels of the retina.
+        </p>
+        <p class="text-secondary small leading-relaxed">
+          Over <strong>70% of India's population resides in rural areas</strong>, while over <strong>80% of all trained ophthalmologists and retinal specialists practice in tier-1 and tier-2 urban centers</strong>. Most rural Primary Health Centres (PHCs) and Community Health Centres (CHCs) have no dilated retinal examination facilities. Consequently, rural patients are often diagnosed only at late, sight-threatening stages (Grade 3 or 4) when irreversible visual loss has already set in.
+        </p>
+        <div class="alert alert-light border p-3 small mb-0">
+          <i class="bi bi-quote text-teal fs-5 me-1"></i>
+          <strong>Clinical Reality:</strong> Over 90% of diabetic retinopathy blindness is preventable through timely, periodic dilated screening and early referral.
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-bullseye text-teal me-2"></i> Project Objectives & Solution
+        </h5>
+        <ul class="text-secondary small ps-3 mb-0" style="line-height: 1.8;">
+          <li>
+            <strong>Accessible Point-of-Care Triage:</strong> Enable Community Health Officers (CHOs) and rural health workers to capture fundus photography with portable cameras and receive real-time risk grading.
+          </li>
+          <li>
+            <strong>Automated Quality Safeguards:</strong> Prevent garbage-in, garbage-out errors by automatically screening for blur (Laplacian variance), under/overexposure, and retinal field coverage before classification.
+          </li>
+          <li>
+            <strong>Explainable AI via Grad-CAM:</strong> Provide visual heatmap justifications for every prediction, eliminating "black box" distrust and showing exactly where the neural network detected microvascular anomalies.
+          </li>
+          <li>
+            <strong>Standardized Referral Protocols:</strong> Provide structured clinical guidance based on International Clinical Diabetic Retinopathy (ICDR) criteria to direct urgent cases to district hospitals.
+          </li>
+          <li>
+            <strong>Multilingual & Low-Bandwidth Architecture:</strong> Support English, Kannada (ಕನ್ನಡ), and Hindi (हिन्दी) with offline-capable CPU execution suitable for rural clinics.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End-to-End System Architecture Diagram -->
+  <div class="medical-card p-4 mb-4">
+    <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+      <i class="bi bi-diagram-2-fill text-teal me-2"></i> End-to-End System Architecture
+    </h5>
+    
+    <!-- Visual Architecture Diagram (SVG / Flow) -->
+    <div class="p-3 bg-light rounded-3 border text-center overflow-auto">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" width="100%" style="min-width: 720px; max-height: 280px;">
+        <defs>
+          <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0F2B48" />
+            <stop offset="100%" stop-color="#1E3A8A" />
+          </linearGradient>
+          <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0D9488" />
+            <stop offset="100%" stop-color="#0F766E" />
+          </linearGradient>
+          <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1" />
+          </filter>
+        </defs>
+
+        <!-- Step 1: Input -->
+        <g transform="translate(10, 40)">
+          <rect width="160" height="160" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)" />
+          <circle cx="80" cy="55" r="28" fill="#F0FDFA" />
+          <text x="80" y="62" font-family="'Inter', sans-serif" font-size="24" text-anchor="middle" fill="#0D9488">📷</text>
+          <text x="80" y="105" font-family="'Inter', sans-serif" font-size="13" font-weight="700" fill="#0F2B48" text-anchor="middle">Retinal Acquisition</text>
+          <text x="80" y="125" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B" text-anchor="middle">Portable PHC Fundus Scope</text>
+          <text x="80" y="140" font-family="'Inter', sans-serif" font-size="9.5" fill="#64748B" text-anchor="middle">JPG / PNG Capture</text>
+        </g>
+
+        <!-- Arrow 1 -->
+        <path d="M 175 120 L 200 120" stroke="#0D9488" stroke-width="2.5" marker-end="url(#arrow)" />
+
+        <!-- Step 2: Quality Guard -->
+        <g transform="translate(205, 40)">
+          <rect width="160" height="160" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)" />
+          <circle cx="80" cy="55" r="28" fill="#FFFBEB" />
+          <text x="80" y="62" font-family="'Inter', sans-serif" font-size="24" text-anchor="middle" fill="#F59E0B">🛡️</text>
+          <text x="80" y="105" font-family="'Inter', sans-serif" font-size="13" font-weight="700" fill="#0F2B48" text-anchor="middle">Quality Guard</text>
+          <text x="80" y="125" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B" text-anchor="middle">Laplacian Blur Var</text>
+          <text x="80" y="140" font-family="'Inter', sans-serif" font-size="9.5" fill="#64748B" text-anchor="middle">Illumination & FOV Check</text>
+        </g>
+
+        <!-- Arrow 2 -->
+        <path d="M 370 120 L 395 120" stroke="#0D9488" stroke-width="2.5" />
+
+        <!-- Step 3: Preprocessing -->
+        <g transform="translate(400, 40)">
+          <rect width="160" height="160" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)" />
+          <circle cx="80" cy="55" r="28" fill="#EFF6FF" />
+          <text x="80" y="62" font-family="'Inter', sans-serif" font-size="24" text-anchor="middle" fill="#2563EB">⚙️</text>
+          <text x="80" y="105" font-family="'Inter', sans-serif" font-size="13" font-weight="700" fill="#0F2B48" text-anchor="middle">LAB CLAHE</text>
+          <text x="80" y="125" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B" text-anchor="middle">Circular FOV Masking</text>
+          <text x="80" y="140" font-family="'Inter', sans-serif" font-size="9.5" fill="#64748B" text-anchor="middle">Ben Graham Normalization</text>
+        </g>
+
+        <!-- Arrow 3 -->
+        <path d="M 565 120 L 590 120" stroke="#0D9488" stroke-width="2.5" />
+
+        <!-- Step 4: AI Inference & Grad-CAM -->
+        <g transform="translate(595, 30)">
+          <rect width="170" height="180" rx="14" fill="url(#boxGrad)" filter="url(#shadow)" />
+          <circle cx="85" cy="55" r="28" fill="rgba(255,255,255,0.15)" />
+          <text x="85" y="63" font-family="'Inter', sans-serif" font-size="24" text-anchor="middle" fill="#FFFFFF">🧠</text>
+          <text x="85" y="105" font-family="'Inter', sans-serif" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">ResNet-50 CNN</text>
+          <text x="85" y="123" font-family="'Inter', sans-serif" font-size="10" fill="#CCFBF1" text-anchor="middle">5-Class ICDR Softmax</text>
+          <rect x="25" y="135" width="120" height="24" rx="6" fill="#0D9488" />
+          <text x="85" y="151" font-family="'Inter', sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">Grad-CAM Hook</text>
+        </g>
+
+        <!-- Arrow 4 -->
+        <path d="M 770 120 L 795 120" stroke="#0D9488" stroke-width="2.5" />
+
+        <!-- Step 5: Clinical Output -->
+        <g transform="translate(800, 40)">
+          <rect width="150" height="160" rx="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2" filter="url(#shadow)" />
+          <circle cx="75" cy="55" r="28" fill="#ECFDF5" />
+          <text x="75" y="62" font-family="'Inter', sans-serif" font-size="24" text-anchor="middle" fill="#10B981">📋</text>
+          <text x="75" y="105" font-family="'Inter', sans-serif" font-size="13" font-weight="700" fill="#0F2B48" text-anchor="middle">ReportLab PDF</text>
+          <text x="75" y="125" font-family="'Inter', sans-serif" font-size="10.5" fill="#64748B" text-anchor="middle">Triage Action Plan</text>
+          <text x="75" y="140" font-family="'Inter', sans-serif" font-size="9.5" fill="#64748B" text-anchor="middle">Multi-language Output</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Methodological Details & Clinical Staging -->
+  <div class="row g-4 mb-4">
+    <!-- ICDR Staging Table -->
+    <div class="col-12 col-lg-7">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-table text-teal me-2"></i> International Clinical Diabetic Retinopathy (ICDR) Grading
+        </h5>
+
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle small mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 15%;">Grade</th>
+                <th style="width: 25%;">Clinical Stage</th>
+                <th style="width: 35%;">Retinal Fundus Findings</th>
+                <th style="width: 25%;">PHC Referral Protocol</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge badge-dr-0">Grade 0</span></td>
+                <td><strong>No DR</strong></td>
+                <td>No microaneurysms, hemorrhages or abnormalities</td>
+                <td><span class="badge bg-success-subtle text-success">Annual Screening</span></td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-dr-1">Grade 1</span></td>
+                <td><strong>Mild NPDR</strong></td>
+                <td>Microaneurysms only (isolated focal red dots)</td>
+                <td><span class="badge bg-info-subtle text-info">Follow-up 6-12 Mo</span></td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-dr-2">Grade 2</span></td>
+                <td><strong>Moderate NPDR</strong></td>
+                <td>Multiple microaneurysms, blot hemorrhages, hard exudates</td>
+                <td><span class="badge bg-warning-subtle text-warning">Referral &le; 3 Months</span></td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-dr-3">Grade 3</span></td>
+                <td><strong>Severe NPDR</strong></td>
+                <td>4-2-1 Rule: >20 hemorrhages in 4 quadrants, venous beading</td>
+                <td><span class="badge bg-danger-subtle text-danger">Urgent: 2-4 Weeks</span></td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-dr-4">Grade 4</span></td>
+                <td><strong>Proliferative DR</strong></td>
+                <td>Neovascularization (NVD/NVE), vitreous / preretinal hemorrhage</td>
+                <td><span class="badge bg-danger text-white">Emergency: 48-72 Hr</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Methodology & Limitations -->
+    <div class="col-12 col-lg-5">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-shield-lock-fill text-teal me-2"></i> Technical Integrity & Limitations
+        </h5>
+
+        <div class="small text-secondary mb-3">
+          <strong>1. Dataset Provenance:</strong> Designed for weights fine-tuned on public benchmarks including APTOS 2019 (Aravind Eye Hospital cohort) and EyePACS.
+        </div>
+
+        <div class="small text-secondary mb-3">
+          <strong>2. Transparent Operational Mode:</strong> Unlike systems that disguise random weights, DR Vision AI explicitly reports when running in calibrated demonstration mode vs. certified production model weights.
+        </div>
+
+        <div class="small text-secondary mb-3">
+          <strong>3. Offline-First PHC Resiliency:</strong> Operates entirely on standard CPU machines without needing high-bandwidth cloud connectivity, ensuring rural clinics without reliable internet remain fully operational.
+        </div>
+
+        <div class="small text-secondary">
+          <strong>4. Future Scope:</strong> Integration with Ayushman Bharat Digital Mission (ABDM) health IDs, automated diabetic macular edema (DME) optical coherence tomography triage, and tele-consultation video links with district hospital ophthalmologists.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

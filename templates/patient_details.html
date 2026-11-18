@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h3 class="fw-bold mb-0 text-navy" style="color: #0F2B48;">{{ patient.name }}</h3>
+        <span class="badge bg-secondary">{{ patient.patient_id }}</span>
+      </div>
+      <p class="text-muted small mb-0">{{ patient.age }} years &bull; {{ patient.gender }} &bull; Village: {{ patient.village }}, {{ patient.district }}</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('patients.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Patient Directory
+      </a>
+      <a href="{{ url_for('screening.new_screening', patient_id=patient.id) }}" class="btn btn-medical-teal btn-sm shadow-sm">
+        <i class="bi bi-camera-fill me-1"></i> New Eye Screening
+      </a>
+    </div>
+  </div>
+
+  <!-- Patient Demographic & Health Profile Card -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-8">
+      <div class="medical-card p-4 h-100">
+        <h6 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-person-lines-fill text-teal me-1"></i> Clinical Profile & Medical History
+        </h6>
+        
+        <div class="row g-3">
+          <div class="col-6 col-md-4">
+            <span class="text-muted small d-block">Mobile Contact</span>
+            <strong>{{ patient.mobile }}</strong>
+          </div>
+          <div class="col-6 col-md-4">
+            <span class="text-muted small d-block">Diabetes Type</span>
+            <strong>{{ patient.diabetes_history }}</strong>
+          </div>
+          <div class="col-6 col-md-4">
+            <span class="text-muted small d-block">Diabetes Duration</span>
+            <strong>{{ patient.duration_diabetes_years }} years</strong>
+          </div>
+          <div class="col-6 col-md-4">
+            <span class="text-muted small d-block">Prior Eye Checkup</span>
+            <span>{{ patient.previous_eye_exam }}</span>
+          </div>
+          <div class="col-6 col-md-4">
+            <span class="text-muted small d-block">Latest Blood Glucose</span>
+            <strong>
+              {% if patient.blood_glucose_level %}
+                {{ patient.blood_glucose_level }} mg/dL
+              {% else %}
+                <span class="text-muted">Not recorded</span>
+              {% endif %}
+            </strong>
+          </div>
+          <div class="col-6 col-md-4">
+            <span class="text-muted small d-block">Registered On</span>
+            <span>{{ patient.created_at|format_datetime('%d-%b-%Y') }}</span>
+          </div>
+          {% if patient.notes %}
+          <div class="col-12">
+            <span class="text-muted small d-block">Clinical Notes</span>
+            <div class="p-2 bg-light rounded text-secondary small">{{ patient.notes }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Screening Summary -->
+    <div class="col-12 col-lg-4">
+      <div class="medical-card p-4 h-100 d-flex flex-column justify-content-between">
+        <div>
+          <h6 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+            <i class="bi bi-clipboard2-pulse-fill text-teal me-1"></i> Screening Timeline Summary
+          </h6>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Total Screenings:</span>
+            <strong>{{ screenings|length }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Most Recent Grade:</span>
+            {% if screenings %}
+              {% set latest_grade = screenings[0].predicted_grade if screenings[0].predicted_grade is not none else 0 %}
+              <span class="badge badge-dr-{{ latest_grade }}">{{ dr_classes[latest_grade].name }}</span>
+            {% else %}
+              <span class="text-muted small">None yet</span>
+            {% endif %}
+          </div>
+          <div class="d-flex justify-content-between mb-3">
+            <span class="text-muted small">Referral Required:</span>
+            {% if screenings and (screenings[0].is_referable or screenings[0].predicted_grade >= 2) %}
+              <span class="badge bg-danger-subtle text-danger">Yes &mdash; Urgent Referral</span>
+            {% else %}
+              <span class="badge bg-success-subtle text-success">Routine follow-up</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <a href="{{ url_for('screening.new_screening', patient_id=patient.id) }}" class="btn btn-outline-teal w-100 btn-sm">
+          <i class="bi bi-camera me-1"></i> Perform New Screening
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Longitudinal Screening History Table & Gallery -->
+  <div class="medical-card p-4">
+    <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+      <i class="bi bi-clock-history text-teal me-1"></i> Retinal Screening Progression Records
+    </h5>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+        <thead class="table-light">
+          <tr>
+            <th>Date & Screening ID</th>
+            <th>Eye</th>
+            <th>Fundus Preview</th>
+            <th>Grad-CAM Saliency</th>
+            <th>Predicted Grade</th>
+            <th>Confidence</th>
+            <th>Quality</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in screenings %}
+          {% set grade = s.predicted_grade if s.predicted_grade is not none else 0 %}
+          {% set gmeta = dr_classes[grade] %}
+          <tr>
+            <td>
+              <a href="{{ url_for('screening.results', screening_id=s.screening_id) }}" class="fw-bold text-decoration-none text-navy">
+                {{ s.screening_id }}
+              </a>
+              <div class="text-muted small">{{ s.created_at|format_datetime }}</div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ s.eye_side }} Eye</span>
+            </td>
+            <td>
+              <img src="{{ url_for('static', filename=s.processed_image_path.replace('static/', '')) }}" alt="Fundus" width="55" height="55" class="rounded object-fit-cover border">
+            </td>
+            <td>
+              <img src="{{ url_for('static', filename=s.gradcam_image_path.replace('static/', '')) }}" alt="Grad-CAM" width="55" height="55" class="rounded object-fit-cover border">
+            </td>
+            <td>
+              <span class="badge badge-dr-{{ grade }} px-2 py-1">
+                {{ gmeta.name }}
+              </span>
+              <div class="text-muted" style="font-size: 0.72rem;">{{ gmeta.severity }}</div>
+            </td>
+            <td>
+              <strong>{{ (s.confidence_score * 100)|round(1) }}%</strong>
+            </td>
+            <td>
+              <span class="badge {% if s.quality_status == 'Pass' %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+                {{ s.quality_score|round(0) }} / 100
+              </span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('screening.results', screening_id=s.screening_id) }}" class="btn btn-sm btn-outline-secondary" title="View Result Details">
+                  <i class="bi bi-eye"></i> View
+                </a>
+                <a href="{{ url_for('reports.download_pdf', screening_id=s.screening_id) }}" class="btn btn-sm btn-outline-danger" title="Download PDF Report" target="_blank">
+                  <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              No eye screenings recorded yet for this patient. Click "New Eye Screening" to upload retinal photography.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

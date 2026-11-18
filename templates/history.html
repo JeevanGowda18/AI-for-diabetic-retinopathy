@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold mb-1" style="color: #0F2B48;">{{ t.nav_history }}</h3>
+      <p class="text-muted small mb-0">Complete historical audit log of all retinal screenings conducted at {{ phc_info.center_name }}.</p>
+    </div>
+    <a href="{{ url_for('screening.new_screening') }}" class="btn btn-medical-teal btn-sm shadow-sm">
+      <i class="bi bi-camera-fill me-1"></i> {{ t.btn_start_screening }}
+    </a>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="medical-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('screening.history') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Search by patient name, ID, or screening ID..." value="{{ query }}">
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <select name="grade" class="form-select form-select-sm">
+          <option value="">-- All Severity Grades --</option>
+          {% for g, meta in dr_classes.items() %}
+            <option value="{{ g }}" {% if selected_grade is not none and selected_grade != '' and selected_grade|int == g %}selected{% endif %}>
+              {{ meta.name }} ({{ meta.severity }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select name="referral" class="form-select form-select-sm">
+          <option value="">-- All Referral Status --</option>
+          <option value="1" {% if selected_referral == '1' %}selected{% endif %}>Referral Cases Only (≥ G2)</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary flex-fill">Apply Filter</button>
+        {% if query or selected_grade or selected_referral %}
+          <a href="{{ url_for('screening.history') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Historical Screening Records Table -->
+  <div class="medical-card p-3">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+        <thead class="table-light">
+          <tr>
+            <th>Date & ID</th>
+            <th>Patient Details</th>
+            <th>Eye</th>
+            <th>Retina Preview</th>
+            <th>Grad-CAM Saliency</th>
+            <th>Predicted Grade</th>
+            <th>Confidence</th>
+            <th>Triage Action</th>
+            <th class="text-end">Reports & Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in screenings %}
+          {% set grade = s.predicted_grade if s.predicted_grade is not none else 0 %}
+          {% set gmeta = dr_classes[grade] %}
+          <tr>
+            <td>
+              <a href="{{ url_for('screening.results', screening_id=s.screening_id) }}" class="fw-bold text-decoration-none text-navy">
+                {{ s.screening_id }}
+              </a>
+              <div class="text-muted" style="font-size: 0.72rem;">{{ s.created_at|format_datetime }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ s.patient_name }}</div>
+              <div class="text-muted" style="font-size: 0.75rem;">{{ s.patient_code }} &bull; {{ s.village }}</div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ s.eye_side }}</span>
+            </td>
+            <td>
+              <img src="{{ url_for('static', filename=s.processed_image_path.replace('static/', '')) }}" alt="Fundus" width="50" height="50" class="rounded object-fit-cover border">
+            </td>
+            <td>
+              <img src="{{ url_for('static', filename=s.gradcam_image_path.replace('static/', '')) }}" alt="Grad-CAM" width="50" height="50" class="rounded object-fit-cover border">
+            </td>
+            <td>
+              <span class="badge badge-dr-{{ grade }} px-2 py-1">
+                {{ gmeta.name }}
+              </span>
+              <div class="text-muted" style="font-size: 0.72rem;">{{ gmeta.severity }}</div>
+            </td>
+            <td>
+              <div class="fw-bold">{{ (s.confidence_score * 100)|round(1) }}%</div>
+              <div class="text-muted" style="font-size: 0.72rem;">Quality: {{ s.quality_score|round(0) }}/100</div>
+            </td>
+            <td>
+              {% if s.is_referable or grade >= 2 %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                  <i class="bi bi-hospital me-1"></i> Refer to Specialist
+                </span>
+              {% else %}
+                <span class="badge bg-success-subtle text-success">
+                  <i class="bi bi-calendar-check me-1"></i> Annual Follow-up
+                </span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('screening.results', screening_id=s.screening_id) }}" class="btn btn-sm btn-outline-secondary" title="View Full AI Analysis">
+                  <i class="bi bi-eye"></i> View
+                </a>
+                <a href="{{ url_for('reports.download_pdf', screening_id=s.screening_id) }}" class="btn btn-sm btn-outline-danger" title="Download PDF Report" target="_blank">
+                  <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              No screening records found matching the specified criteria.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

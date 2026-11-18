@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header & Actions -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold mb-1" style="color: #0F2B48;">{{ t.nav_patients }}</h3>
+      <p class="text-muted small mb-0">Cohort registry of registered diabetic patients across rural PHC catchment areas.</p>
+    </div>
+    <button type="button" class="btn btn-medical-teal btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#registerPatientModal">
+      <i class="bi bi-person-plus-fill me-1"></i> {{ t.btn_register_patient }}
+    </button>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="medical-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('patients.index') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Search by name, patient ID, or mobile..." value="{{ query }}">
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <select name="village" class="form-select form-select-sm">
+          <option value="">-- All Villages / Sub-Centres --</option>
+          {% for v in villages %}
+            <option value="{{ v }}" {% if selected_village == v %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary flex-fill">Filter</button>
+        {% if query or selected_village %}
+          <a href="{{ url_for('patients.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Patients Table -->
+  <div class="medical-card p-3">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+        <thead class="table-light">
+          <tr>
+            <th>Patient ID</th>
+            <th>Name</th>
+            <th>Age / Gender</th>
+            <th>Village / Sub-Centre</th>
+            <th>Mobile</th>
+            <th>Diabetes History</th>
+            <th>Blood Sugar</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in patients %}
+          <tr>
+            <td>
+              <a href="{{ url_for('patients.details', patient_id=p.id) }}" class="fw-bold text-decoration-none text-navy">
+                {{ p.patient_id }}
+              </a>
+            </td>
+            <td>
+              <a href="{{ url_for('patients.details', patient_id=p.id) }}" class="fw-semibold text-decoration-none text-dark">
+                {{ p.name }}
+              </a>
+            </td>
+            <td>{{ p.age }} yrs / {{ p.gender }}</td>
+            <td>{{ p.village }}</td>
+            <td>{{ p.mobile }}</td>
+            <td>
+              <span class="badge bg-light text-dark border">
+                {{ p.diabetes_history }} ({{ p.duration_diabetes_years }} yrs)
+              </span>
+            </td>
+            <td>
+              {% if p.blood_glucose_level %}
+                <span class="fw-semibold {% if p.blood_glucose_level > 180 %}text-danger{% elif p.blood_glucose_level > 140 %}text-warning{% else %}text-success{% endif %}">
+                  {{ p.blood_glucose_level }} mg/dL
+                </span>
+              {% else %}
+                <span class="text-muted small">&mdash;</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('patients.details', patient_id=p.id) }}" class="btn btn-sm btn-outline-secondary" title="View Patient Profile">
+                  <i class="bi bi-clock-history"></i> History
+                </a>
+                <a href="{{ url_for('screening.new_screening', patient_id=p.id) }}" class="btn btn-sm btn-medical-teal" title="Start Eye Screening">
+                  <i class="bi bi-camera-fill"></i> Screen
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              No matching patient records found in database.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Full Patient Registration Modal -->
+<div class="modal fade" id="registerPatientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-navy text-white" style="background-color: #0F2B48;">
+        <h5 class="modal-title fw-bold text-white"><i class="bi bi-person-plus-fill me-2"></i> Register New Rural Patient</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('patients.register') }}">
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Patient Full Name *</label>
+              <input type="text" name="name" class="form-control" placeholder="e.g. Basavaraj Biradar" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Age (Years) *</label>
+              <input type="number" name="age" class="form-control" min="1" max="115" placeholder="e.g. 58" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Gender *</label>
+              <select name="gender" class="form-select" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Mobile Number *</label>
+              <input type="text" name="mobile" class="form-control" placeholder="+91 98451..." required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Village / Sub-Centre *</label>
+              <input type="text" name="village" class="form-control" placeholder="e.g. Shirur" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">District *</label>
+              <input type="text" name="district" class="form-control" value="{{ phc_info.district }}" required>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Diabetes Type *</label>
+              <select name="diabetes_history" class="form-select">
+                <option value="Type 2">Type 2 Diabetes</option>
+                <option value="Type 1">Type 1 Diabetes</option>
+                <option value="Pre-diabetic">Pre-diabetic</option>
+                <option value="Gestational">Gestational Diabetes</option>
+                <option value="Suspected">Suspected / Symptoms Present</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Duration of Diabetes (Years)</label>
+              <input type="number" step="0.5" name="duration_diabetes_years" class="form-control" placeholder="e.g. 8.5">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Previous Eye Examination</label>
+              <select name="previous_eye_exam" class="form-select">
+                <option value="Never">Never had dilated eye exam</option>
+                <option value="Within 1 year">Within 1 year</option>
+                <option value="1-2 years ago">1-2 years ago</option>
+                <option value="> 2 years ago">> 2 years ago</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Blood Glucose Level (mg/dL)</label>
+              <input type="number" step="1" name="blood_glucose_level" class="form-control" placeholder="Fasting or Random RBS (optional)">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">State</label>
+              <input type="text" name="state" class="form-control" value="{{ phc_info.state }}" required>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Clinical Notes / Symptoms</label>
+              <textarea name="notes" class="form-control" rows="2" placeholder="Visual complaints, cataract history, hypertension..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-medical-primary">Register Patient</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

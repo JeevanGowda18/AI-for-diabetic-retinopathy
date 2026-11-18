@@ -97,8 +97,8 @@ dr_vision_ai/
 ├── models/
 │   ├── dr_model.py             # ResNet-50 5-class neural network architecture
 │   ├── model_loader.py         # Model lifecycle, device management (CPU/CUDA), demo mode
-│   ├── dr_demo_weights.pth     # Calibrated baseline demonstration weights
-│   └── weights_downloader.py   # CLI weights validator and deployment utility
+│   ├── dr_demo_weights.pth     # (Optional local cache, excluded from Git)
+│   └── weights_downloader.py   # CLI weights validator, downloader & deployment utility
 │
 ├── preprocessing/
 │   ├── image_quality.py        # Focus (Laplacian), illumination, FOV quality guard

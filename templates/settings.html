@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1" style="color: #0F2B48;">{{ t.nav_settings }}</h3>
+      <p class="text-muted small mb-0">Configure PHC operational parameters, verify AI model weights deployment, and inspect quality guardrails.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    
+    <!-- Left Column: Primary Health Centre Identity Settings -->
+    <div class="col-12 col-lg-6">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-hospital text-teal me-2"></i> Primary Health Centre Details
+        </h5>
+
+        <form method="POST" action="{{ url_for('settings.index') }}">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">PHC / Health Facility Name</label>
+            <input type="text" name="center_name" class="form-control" value="{{ phc_config.center_name }}" required>
+            <div class="form-text small">Appears on official ReportLab screening PDF summaries.</div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">District</label>
+              <input type="text" name="district" class="form-control" value="{{ phc_config.district }}" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">State</label>
+              <input type="text" name="state" class="form-control" value="{{ phc_config.state }}" required>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">Attending Medical Officer</label>
+              <input type="text" name="medical_officer" class="form-control" value="{{ phc_config.medical_officer }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">Operator Role</label>
+              <input type="text" name="operator_role" class="form-control" value="{{ phc_config.operator_role }}">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small fw-semibold text-secondary">Default Interface Language</label>
+            <select name="language" class="form-select">
+              <option value="en" {% if current_lang == 'en' %}selected{% endif %}>English (Default)</option>
+              <option value="kn" {% if current_lang == 'kn' %}selected{% endif %}>ಕನ್ನಡ - Kannada</option>
+              <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>हिन्दी - Hindi</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-medical-primary w-100">
+            <i class="bi bi-check2-circle me-1"></i> Update PHC Configuration
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right Column: AI Model Weights Diagnostics & Integration Guide -->
+    <div class="col-12 col-lg-6">
+      <div class="medical-card p-4 h-100">
+        <h5 class="fw-bold text-navy mb-3" style="color: #0F2B48;">
+          <i class="bi bi-cpu-fill text-teal me-2"></i> AI Model Weights Diagnostics
+        </h5>
+
+        <div class="p-3 rounded-3 mb-3 border {% if model_info.is_demo_mode %}bg-warning-subtle border-warning{% else %}bg-success-subtle border-success{% endif %}">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong>Operating Mode:</strong>
+            <span class="badge {% if model_info.is_demo_mode %}bg-warning text-dark{% else %}bg-success{% endif %}">
+              {{ model_info.status|upper }}
+            </span>
+          </div>
+          <p class="small mb-0 text-secondary">
+            {{ model_info.status_message }}
+          </p>
+        </div>
+
+        <div class="bg-light p-3 rounded-3 border mb-3 small">
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted">Architecture:</span>
+            <strong>{{ model_info.dataset_info.architecture }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted">Inference Device:</span>
+            <strong>{{ model_info.device|upper }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted">CUDA Available:</span>
+            <strong>{{ 'Yes' if model_info.cuda_available else 'No (CPU Optimized)' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-1 border-bottom">
+            <span class="text-muted">Grad-CAM Hook:</span>
+            <strong>layer4[-1] (Final Conv Block)</strong>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Target Weights File:</span>
+            <code class="text-break" style="font-size: 0.72rem;">models/dr_resnet50_weights.pth</code>
+          </div>
+        </div>
+
+        <!-- Integration Instructions -->
+        <h6 class="fw-bold text-navy mb-2" style="font-size: 0.88rem;">
+          <i class="bi bi-cloud-arrow-down-fill text-primary me-1"></i> Integrating Production Trained Weights
+        </h6>
+        <div class="p-3 bg-light rounded-3 border text-secondary small" style="font-size: 0.78rem; line-height: 1.6;">
+          <p class="mb-1">To switch from Demonstration Mode to Certified Production Mode:</p>
+          <ol class="ps-3 mb-2">
+            <li>Obtain model weights trained on APTOS 2019 or EyePACS datasets.</li>
+            <li>Run the command: <code>python models/weights_downloader.py --integrate &lt;path_to_weights.pth&gt;</code></li>
+            <li>Or copy your trained file directly to: <code>models/dr_resnet50_weights.pth</code></li>
+          </ol>
+          <div class="text-success fw-semibold">
+            <i class="bi bi-check-circle-fill me-1"></i> The application automatically detects and validates production weights upon placement.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

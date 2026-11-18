@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.app_name }} - {{ t.app_tagline }}</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Custom Application CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if session.get('user_id') %}
+  <!-- Sidebar Navigation -->
+  <aside class="app-sidebar">
+    <div class="sidebar-brand">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Logo" height="38">
+    </div>
+
+    <div class="px-3 pt-3 pb-2">
+      <div class="small text-uppercase text-white-50 fw-bold" style="font-size: 0.75rem; letter-spacing: 0.8px;">
+        <i class="bi bi-geo-alt-fill text-teal-accent me-1"></i> {{ phc_info.center_name }}
+      </div>
+      <div class="text-white small opacity-75">{{ phc_info.district }}, {{ phc_info.state }}</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> {{ t.nav_dashboard }}
+      </a>
+      <a href="{{ url_for('screening.new_screening') }}" class="nav-link {% if request.endpoint == 'screening.new_screening' %}active{% endif %}">
+        <i class="bi bi-eye-fill"></i> {{ t.nav_new_screening }}
+      </a>
+      <a href="{{ url_for('patients.index') }}" class="nav-link {% if 'patients' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-people-fill"></i> {{ t.nav_patients }}
+      </a>
+      <a href="{{ url_for('screening.history') }}" class="nav-link {% if request.endpoint == 'screening.history' %}active{% endif %}">
+        <i class="bi bi-clock-history"></i> {{ t.nav_history }}
+      </a>
+      <a href="{{ url_for('about.explainability_page') }}" class="nav-link {% if request.endpoint == 'about.explainability_page' %}active{% endif %}">
+        <i class="bi bi-diagram-3-fill"></i> {{ t.nav_explainability }}
+      </a>
+      <a href="{{ url_for('reports.index') }}" class="nav-link {% if request.endpoint == 'reports.index' %}active{% endif %}">
+        <i class="bi bi-file-earmark-medical-fill"></i> {{ t.nav_reports }}
+      </a>
+      <a href="{{ url_for('about.about_page') }}" class="nav-link {% if request.endpoint == 'about.about_page' %}active{% endif %}">
+        <i class="bi bi-info-circle-fill"></i> {{ t.nav_about }}
+      </a>
+      <a href="{{ url_for('settings.index') }}" class="nav-link {% if request.endpoint == 'settings.index' %}active{% endif %}">
+        <i class="bi bi-gear-fill"></i> {{ t.nav_settings }}
+      </a>
+    </nav>
+
+    <div class="position-absolute bottom-0 w-100 p-3 border-top border-secondary border-opacity-25">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="text-white small fw-bold">{{ session.get('full_name', 'Health Worker') }}</div>
+          <div class="text-white-50 small" style="font-size: 0.75rem;">Role: {{ session.get('role', 'worker')|capitalize }}</div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-outline-light" title="{{ t.nav_logout }}">
+          <i class="bi bi-box-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main-wrapper">
+    <!-- Top Header Bar -->
+    <header class="top-navbar d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-sm btn-light d-lg-none" id="sidebarToggle">
+          <i class="bi bi-list fs-5"></i>
+        </button>
+        <div>
+          <h5 class="mb-0 fw-bold text-navy" style="color: #0F2B48;">{{ t.app_name }}</h5>
+          <span class="text-muted small">{{ t.app_tagline }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Multilingual Language Selector -->
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-translate text-teal"></i>
+            <span class="fw-semibold">
+              {% if current_lang == 'kn' %}ಕನ್ನಡ (KN)
+              {% elif current_lang == 'hi' %}हिन्दी (HI)
+              {% else %}English (EN)
+              {% endif %}
+            </span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item {% if current_lang == 'en' %}active{% endif %}" href="{{ url_for('about.set_language', lang='en') }}">English (EN)</a></li>
+            <li><a class="dropdown-item {% if current_lang == 'kn' %}active{% endif %}" href="{{ url_for('about.set_language', lang='kn') }}">ಕನ್ನಡ - Kannada (KN)</a></li>
+            <li><a class="dropdown-item {% if current_lang == 'hi' %}active{% endif %}" href="{{ url_for('about.set_language', lang='hi') }}">हिन्दी - Hindi (HI)</a></li>
+          </ul>
+        </div>
+
+        <!-- Quick Start Screening CTA -->
+        <a href="{{ url_for('screening.new_screening') }}" class="btn btn-sm btn-medical-teal d-none d-md-flex align-items-center gap-2 shadow-sm">
+          <i class="bi bi-plus-circle-fill"></i> {{ t.btn_start_screening }}
+        </a>
+      </div>
+    </header>
+
+    <!-- Operational Mode Banner (Transparent Clinical Disclosure) -->
+    <div class="demo-banner">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-shield-exclamation fs-6"></i>
+        <span>
+          <strong>Clinical Triage Support System:</strong> Operating in Primary Health Centre Mode. Model predictions are assistive and must be clinically confirmed by an ophthalmologist.
+        </span>
+      </div>
+      <a href="{{ url_for('settings.index') }}" class="text-decoration-none fw-bold small text-nowrap ms-3" style="color: #92400E;">
+        Weights Status & Model Settings &rarr;
+      </a>
+    </div>
+
+    <!-- Flashed System Messages -->
+    <div class="container-fluid px-4 pt-3">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-3" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                {% if category == 'success' %}<i class="bi bi-check-circle-fill fs-5"></i>
+                {% elif category == 'danger' %}<i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                {% elif category == 'warning' %}<i class="bi bi-exclamation-circle-fill fs-5"></i>
+                {% else %}<i class="bi bi-info-circle-fill fs-5"></i>
+                {% endif %}
+                <div>{{ message }}</div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Main Content Body -->
+    <main class="content-body">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Medical Platform Footer -->
+    <footer class="bg-white border-top py-3 px-4 text-center text-muted small mt-auto">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+        <div>
+          &copy; 2026 <strong>DR Vision AI</strong> &mdash; Rural Tele-Ophthalmology & Healthcare AI. All rights reserved.
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <span><i class="bi bi-hospital me-1"></i> {{ phc_info.center_name }}</span>
+          <span>&bull;</span>
+          <a href="{{ url_for('about.about_page') }}" class="text-decoration-none text-muted">Clinical Protocols & Ethics</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+{% else %}
+  <!-- Minimal layout for unauthenticated views (e.g. login) -->
+  <main>
+    {% block unauth_content %}{% endblock %}
+  </main>
+{% endif %}
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>
