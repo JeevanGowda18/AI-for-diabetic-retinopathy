@@ -79,16 +79,23 @@ class ModelService:
         self.status_message = "Demonstration Mode Active (No weights on disk; in-memory baseline initialized for workflow testing)"
 
     def _initialize_baseline_weights(self, save_path=None):
-        """Generates calibrated weights in-memory to allow functional testing without clinical misrepresentation."""
-        # Initialize backbone with Xavier/Kaiming initialization
+        """Generates calibrated weights in-memory with controlled variance to allow functional testing without clinical misrepresentation."""
         for m in self.model.modules():
-            if isinstance(m, (torch.nn.Conv2d, torch.nn.Linear)):
+            if isinstance(m, torch.nn.Conv2d):
                 torch.nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     torch.nn.init.constant_(m.bias, 0)
             elif isinstance(m, (torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
-                torch.nn.init.constant_(m.weight, 1)
-                torch.nn.init.constant_(m.bias, 0)
+                torch.nn.init.constant_(m.weight, 1.0)
+                torch.nn.init.constant_(m.bias, 0.0)
+                if hasattr(m, 'running_mean') and m.running_mean is not None:
+                    m.running_mean.zero_()
+                if hasattr(m, 'running_var') and m.running_var is not None:
+                    m.running_var.fill_(1.0)
+            elif isinstance(m, torch.nn.Linear):
+                torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
+                if m.bias is not None:
+                    torch.nn.init.constant_(m.bias, 0.0)
         
         if save_path:
             try:
@@ -98,13 +105,15 @@ class ModelService:
             except Exception as e:
                 print(f"[AI Model] Running in-memory without saving: {e}")
 
-    def predict(self, tensor):
+    def predict(self, tensor, temperature=1.0):
         """
         Runs inference on preprocessed PyTorch image tensor.
+        Applies temperature scaling for calibrated diagnostic probability estimation.
         Returns:
             predicted_grade: int (0 to 4)
             confidence: float (0.0 to 1.0)
             probabilities: list of 5 floats
+            logits: list of 5 floats (unnormalized log-odds)
             model_info: metadata dictionary
         """
         if self.model is None:
@@ -115,16 +124,27 @@ class ModelService:
 
         with torch.no_grad():
             logits = self.model(tensor)
-            probs = F.softmax(logits, dim=1).cpu().numpy()[0]
+            
+            # Diagnostic sanity guard against logit explosion
+            raw_logits_np = logits.cpu().numpy()[0]
+            if np.max(np.abs(raw_logits_np)) > 100.0:
+                print(f"[AI Model Warning] Detected uncalibrated extreme logits: {raw_logits_np}. Applying numerical stabilization.")
+                logits = torch.clamp(logits, min=-20.0, max=20.0)
+
+            # Temperature-scaled Softmax for probability calibration
+            scaled_logits = logits / max(0.1, float(temperature))
+            probs = F.softmax(scaled_logits, dim=1).cpu().numpy()[0]
 
         predicted_grade = int(np.argmax(probs))
         confidence = float(probs[predicted_grade])
         probabilities = [round(float(p), 4) for p in probs]
+        raw_logits_list = [round(float(l), 3) for l in raw_logits_np]
 
         return {
             'predicted_grade': predicted_grade,
             'confidence': round(confidence, 4),
             'probabilities': probabilities,
+            'logits': raw_logits_list,
             'is_demo_mode': self.is_demo_mode,
             'status': self.status,
             'status_message': self.status_message,

@@ -27,6 +27,8 @@ class GradCAM:
 
         self.gradients = None
         self.activations = None
+        self._fwd_handle = None
+        self._bwd_handle = None
         
         # Register hooks
         self._register_hooks()
@@ -38,8 +40,27 @@ class GradCAM:
         def backward_hook(module, grad_in, grad_out):
             self.gradients = grad_out[0].detach()
 
-        self.target_layer.register_forward_hook(forward_hook)
-        self.target_layer.register_full_backward_hook(backward_hook)
+        self.remove_hooks()
+        self._fwd_handle = self.target_layer.register_forward_hook(forward_hook)
+        self._bwd_handle = self.target_layer.register_full_backward_hook(backward_hook)
+
+    def remove_hooks(self):
+        """Safely removes registered PyTorch forward and backward hooks."""
+        if self._fwd_handle is not None:
+            try:
+                self._fwd_handle.remove()
+            except Exception:
+                pass
+            self._fwd_handle = None
+        if self._bwd_handle is not None:
+            try:
+                self._bwd_handle.remove()
+            except Exception:
+                pass
+            self._bwd_handle = None
+
+    def __del__(self):
+        self.remove_hooks()
 
     def generate_heatmap(self, input_tensor, target_class=None):
         """
