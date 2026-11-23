@@ -18,6 +18,8 @@ from routes.screening import screening_bp
 from routes.reports import reports_bp
 from routes.about import about_bp
 from routes.settings import settings_bp
+from routes.tts import tts_bp
+
 
 def create_app():
     app = Flask(__name__)
@@ -39,6 +41,8 @@ def create_app():
     app.register_blueprint(reports_bp)
     app.register_blueprint(about_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(tts_bp)
+
 
     # Load Multilingual Translations
     translations = {}

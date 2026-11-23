@@ -77,8 +77,48 @@ def init_db():
         if patient_count == 0:
             seed_sample_patients_and_screenings(conn)
 
+        # Apply schema extensions (doctor verification and dual model columns)
+        apply_schema_migrations(conn)
+
     finally:
         conn.close()
+
+def apply_schema_migrations(conn):
+    """Adds new columns for doctor verification and hybrid models without altering existing data."""
+    cursor = conn.cursor()
+    new_columns = [
+        ("verification_status", "VARCHAR(20) DEFAULT 'Pending'"),
+        ("verified_by", "INTEGER"),
+        ("verified_by_name", "VARCHAR(100)"),
+        ("doctor_notes", "TEXT"),
+        ("verified_at", "TIMESTAMP"),
+        ("doctor_assigned_grade", "INTEGER"),
+        ("retfound_grade", "INTEGER"),
+        ("retfound_confidence", "REAL"),
+        ("retfound_probs", "TEXT"),
+        ("retfound_status", "VARCHAR(50)"),
+        ("dr_mini_grade", "INTEGER"),
+        ("dr_mini_confidence", "REAL"),
+        ("dr_mini_probs", "TEXT"),
+        ("dr_mini_status", "VARCHAR(50)"),
+        ("hybrid_grade", "INTEGER"),
+        ("hybrid_confidence", "REAL"),
+        ("hybrid_probs", "TEXT"),
+        ("hybrid_agreement", "VARCHAR(50)"),
+        ("dr_mini_gradcam_path", "VARCHAR(255)"),
+        ("retfound_gradcam_path", "VARCHAR(255)"),
+        ("quality_gate_passed", "INTEGER DEFAULT 1"),
+        ("quality_gate_details", "TEXT")
+    ]
+
+    for col_name, col_def in new_columns:
+        try:
+            cursor.execute(f"ALTER TABLE screenings ADD COLUMN {col_name} {col_def};")
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+    conn.commit()
+
 
 def seed_sample_patients_and_screenings(conn):
     """Seeds a representative rural cohort to demonstrate dashboard dynamics and referral analytics."""

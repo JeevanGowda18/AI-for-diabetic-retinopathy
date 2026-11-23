@@ -223,5 +223,165 @@ class DRVisionAITestCase(unittest.TestCase):
         self.assertIn(b"Primary Health Centre Details", resp_settings.data)
         print("[TEST 08 PASSED] Explainability, About, and Settings pages verified.")
 
+    def test_09_gemini_vision_and_crop_fallback(self):
+        """Tests Gemini Vision AI eye detection and automatic OpenCV fallback (F-03)."""
+        from preprocessing.gemini_vision_crop import gemini_detect_and_crop
+        fundus_sample_path = Config.UPLOAD_FOLDER / 'sample_normal.jpg'
+        img = cv2.imread(str(fundus_sample_path))
+        self.assertIsNotNone(img)
+
+        # Test fallback behavior when API key is unconfigured
+        cropped, circle_info, detector_used = gemini_detect_and_crop(img, target_size=(512, 512))
+        self.assertEqual(cropped.shape, (512, 512, 3))
+        self.assertEqual(detector_used, 'opencv_fallback')
+        self.assertIsNotNone(circle_info)
+        print("[TEST 09 PASSED] Gemini Vision AI retinal eye detection and certified fallback verified (F-03).")
+
+    def test_10_top2_margin_and_quality_gate(self):
+        """Verifies Confidence and Top-2 Probability Margin Quality Gate (F-04)."""
+        from preprocessing.image_quality import assess_prediction_quality_gate
+
+        # 1. High confidence, wide margin (Pass)
+        decisive_probs = [0.85, 0.05, 0.05, 0.03, 0.02]
+        gate_pass = assess_prediction_quality_gate(decisive_probs, min_confidence=0.50, min_top2_margin=0.15)
+        self.assertTrue(gate_pass['gate_passed'])
+        self.assertFalse(gate_pass['review_required'])
+        self.assertAlmostEqual(gate_pass['top2_margin'], 0.80, places=2)
+
+        # 2. Low confidence / ambiguous spread (Fail / Review Required)
+        ambiguous_probs = [0.35, 0.32, 0.20, 0.08, 0.05]
+        gate_fail = assess_prediction_quality_gate(ambiguous_probs, min_confidence=0.50, min_top2_margin=0.15)
+        self.assertFalse(gate_fail['gate_passed'])
+        self.assertTrue(gate_fail['review_required'])
+        self.assertTrue(len(gate_fail['flag_reasons']) > 0)
+        print("[TEST 10 PASSED] Confidence and Top-2 margin quality gate verified (F-04).")
+
+    def test_11_multilingual_tts_generation(self):
+        """Verifies multilingual clinical speech synthesis in EN, KN, and HI (F-05)."""
+        self.login()
+        conn = get_db_connection()
+        scr = conn.execute("SELECT screening_id FROM screenings ORDER BY id DESC LIMIT 1").fetchone()
+        conn.close()
+        scr_id = scr['screening_id']
+
+        for lang in ['en', 'kn', 'hi']:
+            resp = self.client.get(f'/api/tts/{scr_id}?lang={lang}')
+            self.assertEqual(resp.status_code, 200)
+            data = json.loads(resp.data)
+            self.assertTrue(data['success'])
+            self.assertEqual(data['lang'], lang)
+            self.assertTrue(len(data['spoken_text']) > 10)
+        print("[TEST 11 PASSED] Multilingual Text-to-Speech (English, Kannada, Hindi) verified (F-05).")
+
+    def test_12_doctor_in_the_loop_verification(self):
+        """Verifies Doctor-in-the-Loop review, approval, and modification workflow (F-06)."""
+        self.login(username='dr_patil', password='doctor123')
+        conn = get_db_connection()
+        scr = conn.execute("SELECT screening_id FROM screenings ORDER BY id DESC LIMIT 1").fetchone()
+        conn.close()
+        scr_id = scr['screening_id']
+
+        # 1. Doctor Verifies
+        resp_verify = self.client.post(f'/screening/{scr_id}/verify', data={
+            'action': 'verify',
+            'doctor_notes': 'Clinical macula check confirmed clear.',
+            'assigned_grade': '0'
+        }, follow_redirects=True)
+        self.assertEqual(resp_verify.status_code, 200)
+
+        conn = get_db_connection()
+        updated_scr = conn.execute("SELECT * FROM screenings WHERE screening_id = ?", (scr_id,)).fetchone()
+        conn.close()
+        self.assertEqual(updated_scr['verification_status'], 'Verified')
+        self.assertEqual(updated_scr['doctor_notes'], 'Clinical macula check confirmed clear.')
+
+        # 2. Doctor Modifies Grade
+        resp_modify = self.client.post(f'/screening/{scr_id}/verify', data={
+            'action': 'modify',
+            'doctor_notes': 'Clinical review reveals early microaneurysms.',
+            'assigned_grade': '1'
+        }, follow_redirects=True)
+        self.assertEqual(resp_modify.status_code, 200)
+
+        conn = get_db_connection()
+        mod_scr = conn.execute("SELECT * FROM screenings WHERE screening_id = ?", (scr_id,)).fetchone()
+        conn.close()
+        self.assertEqual(mod_scr['verification_status'], 'Modified')
+        self.assertEqual(mod_scr['doctor_assigned_grade'], 1)
+        print("[TEST 12 PASSED] Doctor-in-the-loop clinical verification and grade modification verified (F-06).")
+
+    def test_13_dual_pdf_reports_and_email_dispatch(self):
+        """Verifies dual PDF reports (printable and digital) and email dispatch (F-08)."""
+        self.login()
+        conn = get_db_connection()
+        scr = conn.execute("SELECT screening_id FROM screenings ORDER BY id DESC LIMIT 1").fetchone()
+        conn.close()
+        scr_id = scr['screening_id']
+
+        # 1. Download Printable Hard-Copy Report
+        resp_print = self.client.get(f'/reports/download/{scr_id}?type=printable')
+        self.assertEqual(resp_print.status_code, 200)
+        self.assertEqual(resp_print.mimetype, 'application/pdf')
+        self.assertTrue(len(resp_print.data) > 1000)
+
+        # 2. Download Digital Report
+        resp_digi = self.client.get(f'/reports/download/{scr_id}?type=digital')
+        self.assertEqual(resp_digi.status_code, 200)
+        self.assertEqual(resp_digi.mimetype, 'application/pdf')
+        self.assertTrue(len(resp_digi.data) > 1000)
+
+        # 3. Email Dispatch (Offline PHC Logging Mode)
+        resp_mail = self.client.post(f'/reports/email/{scr_id}', data={
+            'recipient_email': 'test.patient@gmail.com'
+        }, follow_redirects=True)
+        self.assertEqual(resp_mail.status_code, 200)
+
+        conn = get_db_connection()
+        log_entry = conn.execute("SELECT * FROM audit_logs WHERE action = 'EMAIL_REPORT_DISPATCH' ORDER BY id DESC LIMIT 1").fetchone()
+        conn.close()
+        self.assertIsNotNone(log_entry)
+        self.assertIn('test.patient@gmail.com', log_entry['details'])
+        print("[TEST 13 PASSED] Dual PDF report generation and email dispatch verified (F-08).")
+
+    def test_14_dr_mini_and_hybrid_consensus(self):
+        """Verifies DR-Mini AI independent classification and hybrid probabilistic fusion (F-01 / Hybrid)."""
+        import torch
+        from models.dr_mini_loader import DRMiniService
+        from hybrid_prediction import HybridPredictionEngine
+
+        dr_mini = DRMiniService.get_instance()
+        self.assertTrue(dr_mini.is_available)
+
+        dummy = torch.randn(1, 3, 224, 224)
+        pred_mini = dr_mini.predict(dummy)
+        self.assertTrue(pred_mini['available'])
+        self.assertIn(pred_mini['predicted_grade'], [0, 1, 2, 3, 4])
+        self.assertEqual(len(pred_mini['class_probabilities']), 5)
+        self.assertAlmostEqual(sum(pred_mini['class_probabilities']), 1.0, places=2)
+
+        engine = HybridPredictionEngine.get_instance()
+        hybrid_res = engine.predict(dummy)
+        self.assertIn('hybrid_result', hybrid_res)
+        self.assertIn(hybrid_res['hybrid_result']['predicted_grade'], [0, 1, 2, 3, 4])
+        print("[TEST 14 PASSED] DR-Mini AI independent model and hybrid consensus engine verified.")
+
+    def test_15_retfound_weights_required_handling(self):
+        """Verifies ethical integrity of RETFound Foundation Model (no false predictions when weights are missing)."""
+        from models.retfound_loader import RETFoundService
+        import torch
+
+        retfound = RETFoundService.get_instance()
+        # When retfound_cfp_weights.pth is not present on disk:
+        if not retfound.WEIGHTS_PATH.exists():
+            self.assertFalse(retfound.is_available)
+            self.assertEqual(retfound.status, 'weights_required')
+            dummy = torch.randn(1, 3, 224, 224)
+            pred = retfound.predict(dummy)
+            self.assertFalse(pred['available'])
+            self.assertIsNone(pred['predicted_grade'])
+            self.assertIn('huggingface.co', pred['download_url'])
+        print("[TEST 15 PASSED] RETFound Foundation Model ethical weights_required handling verified.")
+
+
 if __name__ == '__main__':
     unittest.main()

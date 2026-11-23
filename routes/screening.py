@@ -27,8 +27,12 @@ from preprocessing.image_quality import assess_image_quality
 from preprocessing.image_enhancement import enhance_retinal_image, prepare_tensor_for_model
 from preprocessing.retinal_analysis import analyze_retinal_structures
 from models.model_loader import ModelService
+from models.dr_mini_loader import DRMiniService
+from models.retfound_loader import RETFoundService
+from hybrid_prediction import HybridPredictionEngine
 from explainability.gradcam import GradCAM
 from reports.pdf_generator import generate_screening_pdf
+
 
 screening_bp = Blueprint('screening', __name__)
 
@@ -198,26 +202,43 @@ def run_ai():
     cv_annotated, vessels, cv_stats = analyze_retinal_structures(enhanced_bgr)
     cv2.imwrite(str(cv_full_path), cv_annotated)
 
-    # 4. PyTorch AI Model Inference
-    model_service = ModelService.get_instance()
-    tensor = prepare_tensor_for_model(enhanced_bgr, device=model_service.device)
-    prediction = model_service.predict(tensor)
+    # 4. Multi-Model Hybrid AI Inference (ResNet-50 / DRClassifier + DR-Mini AI + RETFound)
+    hybrid_engine = HybridPredictionEngine.get_instance()
+    tensor = prepare_tensor_for_model(enhanced_bgr, device=hybrid_engine.primary_service.device)
+    hybrid_eval = hybrid_engine.predict(tensor, enhanced_bgr=enhanced_bgr)
 
-    pred_grade = prediction['predicted_grade']
-    confidence = prediction['confidence']
-    probabilities = prediction['probabilities']
-    is_demo = prediction['is_demo_mode']
+    hybrid_res = hybrid_eval['hybrid_result']
+    primary_res = hybrid_eval['primary_model']
+    dr_mini_res = hybrid_eval['dr_mini']
+    retfound_res = hybrid_eval['retfound']
+
+    pred_grade = hybrid_res['predicted_grade']
+    confidence = hybrid_res['confidence']
+    probabilities = hybrid_res['class_probabilities']
+    is_demo = primary_res.get('is_demo_mode', False)
     model_mode = 'demo_calibrated' if is_demo else 'production_trained'
 
     grade_meta = Config.DR_CLASSES.get(pred_grade, Config.DR_CLASSES[0])
-    is_referable = 1 if pred_grade >= 2 else 0
+    is_referable = hybrid_res['is_referable']
 
-    # 5. Grad-CAM Explainability Map
-    gradcam = GradCAM(model_service.model)
+    # 5. Grad-CAM Explainability Map (Primary Clinical Model)
+    gradcam = GradCAM(hybrid_engine.primary_service.model)
     heatmap, _ = gradcam.generate_heatmap(tensor, target_class=pred_grade)
     overlay_cam, _ = gradcam.overlay_on_image(enhanced_bgr, heatmap)
     cv2.imwrite(str(cam_full_path), overlay_cam)
     cam_analysis = gradcam.analyze_activated_regions(heatmap, enhanced_bgr.shape)
+
+    # Secondary Grad-CAM (DR-Mini AI if available)
+    mini_cam_save_name = None
+    if dr_mini_res.get('available') and hybrid_engine.dr_mini_service.model is not None:
+        try:
+            mini_gradcam = GradCAM(hybrid_engine.dr_mini_service.model)
+            mini_heatmap, _ = mini_gradcam.generate_heatmap(tensor, target_class=dr_mini_res['predicted_grade'])
+            mini_overlay_cam, _ = mini_gradcam.overlay_on_image(enhanced_bgr, mini_heatmap)
+            mini_cam_save_name = f"{base_name}_dr_mini_gradcam.jpg"
+            cv2.imwrite(str(upload_dir / mini_cam_save_name), mini_overlay_cam)
+        except Exception as exc:
+            print(f"[Grad-CAM DR-Mini] Auxiliary Grad-CAM generation skipped: {exc}")
 
     # 6. Generate Official PDF Report
     screening_record = {
@@ -226,6 +247,7 @@ def run_ai():
         'original_image_path': str(orig_full_path),
         'processed_image_path': str(proc_full_path),
         'gradcam_image_path': str(cam_full_path),
+        'dr_mini_gradcam_path': str(upload_dir / mini_cam_save_name) if mini_cam_save_name else None,
         'cv_analysis_path': str(cv_full_path),
         'quality_status': quality['status'],
         'quality_score': quality['score'],
@@ -237,13 +259,17 @@ def run_ai():
         'referral_urgency': grade_meta['referral_urgency'],
         'clinical_recommendation': grade_meta['recommendation_en'],
         'model_mode': model_mode,
+        'verification_status': 'Pending',
+        'hybrid_result': hybrid_res,
+        'dr_mini': dr_mini_res,
+        'retfound': retfound_res,
         'screening_notes': screening_notes or cam_analysis['text_explanation']
     }
 
     patient_dict = dict(patient)
     generate_screening_pdf(screening_record, patient_dict, str(pdf_full_path))
 
-    # 7. Persist to Database
+    # 7. Persist to Database (with Doctor Verification and Hybrid Columns)
     cursor.execute("""
         INSERT INTO screenings (
             screening_id, patient_id, user_id, eye_side,
@@ -251,8 +277,14 @@ def run_ai():
             quality_status, quality_score, quality_details,
             predicted_grade, predicted_class_name, confidence_score, class_probabilities,
             is_referable, referral_urgency, clinical_recommendation,
-            model_mode, screening_notes, pdf_report_path
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            model_mode, screening_notes, pdf_report_path,
+            verification_status,
+            retfound_grade, retfound_confidence, retfound_probs, retfound_status,
+            dr_mini_grade, dr_mini_confidence, dr_mini_probs, dr_mini_status,
+            hybrid_grade, hybrid_confidence, hybrid_probs, hybrid_agreement,
+            dr_mini_gradcam_path,
+            quality_gate_passed, quality_gate_details
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         screening_code, patient['id'], session.get('user_id'), eye_side,
         f"static/uploads/{orig_save_name}",
@@ -262,13 +294,91 @@ def run_ai():
         quality['status'], quality['score'], json.dumps(quality['metrics']),
         pred_grade, grade_meta['name'], confidence, json.dumps(probabilities),
         is_referable, grade_meta['referral_urgency'], grade_meta['recommendation_en'],
-        model_mode, screening_notes, f"static/uploads/{pdf_save_name}"
+        model_mode, screening_notes, f"static/uploads/{pdf_save_name}",
+        'Pending',
+        retfound_res.get('predicted_grade'), retfound_res.get('confidence'),
+        json.dumps(retfound_res.get('class_probabilities')) if retfound_res.get('class_probabilities') else None,
+        retfound_res.get('status'),
+        dr_mini_res.get('predicted_grade'), dr_mini_res.get('confidence'),
+        json.dumps(dr_mini_res.get('class_probabilities')) if dr_mini_res.get('class_probabilities') else None,
+        dr_mini_res.get('status'),
+        hybrid_res['predicted_grade'], hybrid_res['confidence'],
+        json.dumps(hybrid_res['class_probabilities']), hybrid_res['agreement_status'],
+        f"static/uploads/{mini_cam_save_name}" if mini_cam_save_name else None,
+        hybrid_res['quality_gate_passed'], json.dumps(hybrid_res['quality_gate'])
     ))
     conn.commit()
     conn.close()
 
     flash(f"Screening {screening_code} completed successfully. AI Diagnosis generated.", "success")
     return redirect(url_for('screening.results', screening_id=screening_code))
+
+
+@screening_bp.route('/screening/<screening_id>/verify', methods=['POST'])
+@login_required
+def verify_screening(screening_id):
+    """
+    Doctor-in-the-Loop Clinical Verification Endpoint (F-06).
+    Enables Medical Officers to verify, modify, or reject AI screening results.
+    """
+    user_role = session.get('role', '')
+    if user_role not in ('doctor', 'admin'):
+        flash("Clinical verification is restricted to Medical Officers and Administrators.", "danger")
+        return redirect(url_for('screening.results', screening_id=screening_id))
+
+    action = request.form.get('action', 'verify')  # 'verify', 'modify', 'reject'
+    doctor_notes = request.form.get('doctor_notes', '').strip()
+    assigned_grade = request.form.get('assigned_grade')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM screenings WHERE screening_id = ?", (screening_id,))
+    scr = cursor.fetchone()
+    if not scr:
+        conn.close()
+        flash("Screening record not found.", "danger")
+        return redirect(url_for('dashboard.index'))
+
+    user_name = session.get('full_name', 'Dr. Ramesh Patil')
+    user_id = session.get('user_id')
+    now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if action == 'verify':
+        status = 'Verified'
+        verified_grade = scr['predicted_grade']
+        flash_msg = f"Screening {screening_id} verified by {user_name}."
+    elif action == 'modify':
+        status = 'Modified'
+        try:
+            verified_grade = int(assigned_grade)
+        except (TypeError, ValueError):
+            verified_grade = scr['predicted_grade']
+        flash_msg = f"Screening {screening_id} clinical grade updated to Grade {verified_grade} by {user_name}."
+    elif action == 'reject':
+        status = 'Rejected'
+        verified_grade = None
+        flash_msg = f"Screening {screening_id} marked as Rejected. Please re-capture retinal image."
+    else:
+        status = 'Verified'
+        verified_grade = scr['predicted_grade']
+        flash_msg = f"Screening {screening_id} updated."
+
+    cursor.execute("""
+        UPDATE screenings
+        SET verification_status = ?,
+            verified_by = ?,
+            verified_by_name = ?,
+            doctor_notes = ?,
+            verified_at = ?,
+            doctor_assigned_grade = ?
+        WHERE screening_id = ?
+    """, (status, user_id, user_name, doctor_notes, now_ts, verified_grade, screening_id))
+    conn.commit()
+    conn.close()
+
+    flash(flash_msg, "success")
+    return redirect(url_for('screening.results', screening_id=screening_id))
+
 
 @screening_bp.route('/screening/results/<screening_id>')
 @login_required
@@ -295,13 +405,22 @@ def results(screening_id):
     grade = record['predicted_grade'] if record['predicted_grade'] is not None else 0
     grade_meta = Config.DR_CLASSES.get(grade, Config.DR_CLASSES[0])
 
+    # Unpack dual-model information if available
+    dr_mini_probs = json.loads(record['dr_mini_probs']) if record['dr_mini_probs'] else None
+    retfound_probs = json.loads(record['retfound_probs']) if record['retfound_probs'] else None
+    quality_gate = json.loads(record['quality_gate_details']) if record['quality_gate_details'] else None
+
     return render_template(
         'results.html',
         scr=record,
         grade_meta=grade_meta,
         probabilities=probs,
+        dr_mini_probs=dr_mini_probs,
+        retfound_probs=retfound_probs,
+        quality_gate=quality_gate,
         dr_classes=Config.DR_CLASSES
     )
+
 
 @screening_bp.route('/history')
 @login_required

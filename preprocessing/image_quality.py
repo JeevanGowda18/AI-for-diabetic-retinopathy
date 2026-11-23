@@ -175,3 +175,62 @@ def assess_image_quality(image_bgr, thresholds=None):
         'issues': issues,
         'recommendations': recommendations
     }
+
+
+def assess_prediction_quality_gate(
+    probabilities,
+    min_confidence: float = 0.50,
+    min_top2_margin: float = 0.15
+):
+    """
+    Confidence and Top-2 Probability Margin Quality Gate (F-04).
+    Validates model prediction certainty before confirming clinical grade.
+
+    Guards against:
+    1. Low peak confidence (< 50%): Indecisive probability spread.
+    2. Narrow Top-2 margin (< 15%): Boundary ambiguity between two adjacent DR grades.
+
+    If quality gate fails, flags screening for mandatory specialist clinical review
+    instead of forcing an unreliable diagnosis.
+    """
+    probs = np.array(probabilities, dtype=float)
+    if len(probs) < 2:
+        return {
+            'gate_passed': True,
+            'confidence': 1.0,
+            'top2_margin': 1.0,
+            'review_required': False,
+            'status_message': 'Single class output'
+        }
+
+    sorted_indices = np.argsort(probs)[::-1]
+    top1_idx = int(sorted_indices[0])
+    top2_idx = int(sorted_indices[1])
+
+    top1_prob = float(probs[top1_idx])
+    top2_prob = float(probs[top2_idx])
+    top2_margin = float(top1_prob - top2_prob)
+
+    flag_reasons = []
+    if top1_prob < min_confidence:
+        flag_reasons.append(
+            f"Low confidence ({top1_prob*100:.1f}% below minimum {min_confidence*100:.1f}%)"
+        )
+    if top2_margin < min_top2_margin:
+        flag_reasons.append(
+            f"Ambiguous prediction between Grade {top1_idx} and Grade {top2_idx} (Top-2 margin {top2_margin*100:.1f}% < {min_top2_margin*100:.1f}%)"
+        )
+
+    gate_passed = len(flag_reasons) == 0
+
+    return {
+        'gate_passed': gate_passed,
+        'confidence': round(top1_prob, 4),
+        'top2_margin': round(top2_margin, 4),
+        'top1_class': top1_idx,
+        'top2_class': top2_idx,
+        'flag_reasons': flag_reasons,
+        'review_required': not gate_passed,
+        'status_message': "Passed certainty quality gate" if gate_passed else f"Specialist review recommended: {'; '.join(flag_reasons)}"
+    }
+

@@ -14,6 +14,12 @@ import torch
 from torchvision import transforms
 from PIL import Image
 
+try:
+    from preprocessing.gemini_vision_crop import gemini_detect_and_crop
+except ImportError:
+    gemini_detect_and_crop = None
+
+
 
 def detect_and_crop_fundus_circle(img_bgr, target_size=(512, 512)):
     """
@@ -180,14 +186,17 @@ def enhance_retinal_image(image_bgr, target_size=(512, 512)):
     Returns:
         enhanced_bgr: BGR image of shape target_size, ready for display and CV analysis
     """
-    # --- Step 1: Detect fundus circle, crop to square, resize, mask ---
-    cropped, circle_info = detect_and_crop_fundus_circle(image_bgr, target_size=target_size)
-
-    if circle_info is not None:
-        cx, cy, r = circle_info
-        print(f"[Preprocessing] Fundus circle detected: center=({cx},{cy}), radius={r}px")
+    # --- Step 1: Detect fundus circle (Gemini Vision AI or OpenCV Fallback), crop to square, resize, mask ---
+    if gemini_detect_and_crop is not None:
+        cropped, circle_info, detector_used = gemini_detect_and_crop(image_bgr, target_size=target_size)
+        print(f"[Preprocessing] Detector ({detector_used}): circle={circle_info}")
     else:
-        print("[Preprocessing] Fundus circle detection fallback: using image center")
+        cropped, circle_info = detect_and_crop_fundus_circle(image_bgr, target_size=target_size)
+        if circle_info is not None:
+            cx, cy, r = circle_info
+            print(f"[Preprocessing] Fundus circle detected: center=({cx},{cy}), radius={r}px")
+        else:
+            print("[Preprocessing] Fundus circle detection fallback: using image center")
 
     # --- Step 2: LAB CLAHE ---
     enhanced_clahe = apply_clahe_lab(cropped, clip_limit=2.5, tile_grid_size=(8, 8))

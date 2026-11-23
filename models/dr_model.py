@@ -46,3 +46,7 @@ class DRResNet50(nn.Module):
     def get_target_layer_for_cam(self):
         """Returns the final convolutional bottleneck block for Grad-CAM."""
         return self.backbone.layer4[-1]
+
+# Clinical alias for backwards and interoperability compatibility (F-01)
+DRClassifier = DRResNet50
+
