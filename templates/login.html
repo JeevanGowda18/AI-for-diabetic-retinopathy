@@ -1,84 +1,828 @@
 {% extends "base.html" %}
 
 {% block unauth_content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center p-3" style="background: linear-gradient(135deg, #0F2B48 0%, #0A1E33 100%);">
-  <div class="card border-0 shadow-lg" style="max-width: 460px; width: 100%; border-radius: 1rem; overflow: hidden;">
+<style>
+  :root {
+    --primary-purple-start: #7C3AED;
+    --primary-purple-mid: #9333EA;
+    --primary-purple-end: #A855F7;
+    --purple-light: #F5F3FF;
+    --purple-border: #EDE9FE;
+    --text-slate-dark: #1E293B;
+    --text-slate-muted: #64748B;
+    --text-slate-subtle: #94A3B8;
+    --border-gray: #E2E8F0;
+  }
+
+  body {
+    background-color: #FAFAFC;
+    margin: 0;
+    padding: 0;
+  }
+
+  .login-page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 992px) {
+    .login-page-wrapper {
+      padding: 1.75rem;
+    }
+  }
+
+  .login-split-card {
+    width: 100%;
+    max-width: 1260px;
+    min-height: 840px;
+    background-color: #FFFFFF;
+    border-radius: 28px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.05), 0 0 1px 1px rgba(0, 0, 0, 0.02);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* -------------------------------------------
+     LEFT SHOWCASE PANEL (~48% Width on Desktop)
+  ------------------------------------------- */
+  .left-showcase-panel {
+    flex: 0 0 48%;
+    background: linear-gradient(180deg, #F5F3FF 0%, #FFFFFF 48%, #F5F3FF 100%);
+    border-right: 1px solid var(--purple-border);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2.75rem 2.25rem 2.25rem;
+    user-select: none;
+  }
+
+  /* Background Scattered Pixel/Mosaic Blocks */
+  .mosaic-pixel {
+    position: absolute;
+    background-color: #DDD6FE;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Slider Navigation Arrow Pill */
+  .slider-nav-pill {
+    position: absolute;
+    top: 46%;
+    left: 20px;
+    width: 38px;
+    height: 38px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 50%;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748B;
+    font-size: 0.95rem;
+    z-index: 20;
+    cursor: default;
+    transition: all 0.2s ease;
+  }
+
+  /* Center Visual Stage (Floating Card + Badges) */
+  .showcase-visual-stage {
+    position: relative;
+    width: 100%;
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    z-index: 5;
+    padding-right: 1.5rem;
+  }
+
+  /* Floating 3D Purple Circle Badges */
+  .floating-badge {
+    position: absolute;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    z-index: 12;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .floating-badge:hover {
+    transform: scale(1.06);
+  }
+
+  .badge-top {
+    top: 14%;
+    left: 17%;
+    width: 48px;
+    height: 48px;
+    box-shadow: 0 10px 25px -4px rgba(124, 58, 237, 0.45);
+    font-size: 1.25rem;
+  }
+
+  .badge-mid {
+    top: 36%;
+    left: 5%;
+    width: 58px;
+    height: 58px;
+    box-shadow: 0 14px 32px -4px rgba(124, 58, 237, 0.48);
+    font-size: 1.55rem;
+  }
+
+  .badge-bottom {
+    top: 61%;
+    left: 13%;
+    width: 52px;
+    height: 52px;
+    box-shadow: 0 12px 28px -4px rgba(124, 58, 237, 0.42);
+    font-size: 1.4rem;
+  }
+
+  /* Center Floating White Card with Bottom Fade-Out Effect */
+  .floating-schedule-card {
+    width: 320px;
+    background: #FFFFFF;
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: 0 25px 45px -12px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.03);
+    padding: 1.25rem 1.25rem 0.5rem;
+    z-index: 8;
+    position: relative;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 68%, rgba(0, 0, 0, 0) 100%);
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 68%, rgba(0, 0, 0, 0) 100%);
+  }
+
+  .card-header-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #F1F5F9;
+  }
+
+  .status-dot-active {
+    width: 7px;
+    height: 7px;
+    background-color: #10B981;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+
+  .status-header-text {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-slate-dark);
+  }
+
+  .doctor-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    margin-bottom: 0.25rem;
+  }
+
+  .doctor-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    flex-shrink: 0;
+  }
+
+  .doctor-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-slate-dark);
+    line-height: 1.15;
+  }
+
+  .doctor-specialty {
+    font-size: 0.68rem;
+    color: var(--text-slate-muted);
+  }
+
+  .screening-stat-quota {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #475569;
+    text-align: right;
+    line-height: 1.15;
+  }
+
+  .screening-stat-time {
+    font-size: 0.68rem;
+    color: var(--text-slate-subtle);
+    text-align: right;
+  }
+
+  /* Bottom Captions & Carousel Dots */
+  .showcase-bottom-content {
+    text-align: center;
+    padding: 1.5rem 1rem 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  .showcase-headline {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--text-slate-dark);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.55rem;
+  }
+
+  .showcase-subtext {
+    font-size: 0.92rem;
+    color: var(--text-slate-muted);
+    max-width: 410px;
+    margin: 0 auto 1.5rem;
+    line-height: 1.5;
+  }
+
+  .carousel-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .dot-pill {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #CBD5E1;
+    transition: all 0.2s ease;
+  }
+
+  .dot-pill.active {
+    background-color: #334155;
+    width: 7px;
+    height: 7px;
+  }
+
+  /* -------------------------------------------
+     RIGHT LOGIN PANEL (~52% Width on Desktop)
+  ------------------------------------------- */
+  .right-login-panel {
+    flex: 1 1 52%;
+    background-color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3rem 2.5rem 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .right-login-panel {
+      padding: 3.5rem 4rem 2.25rem;
+    }
+  }
+
+  .form-inner-container {
+    width: 100%;
+    max-width: 420px;
+    margin: auto;
+  }
+
+  /* Top Centered Brand Logo */
+  .top-brand-icon-box {
+    width: 46px;
+    height: 46px;
+    background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px -3px rgba(124, 58, 237, 0.35);
+    margin: 0 auto 0.85rem;
+  }
+
+  .brand-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0.25rem;
+  }
+
+  .brand-title-main {
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: 0.3px;
+    color: #0F2B48;
+  }
+
+  .brand-ai-tag {
+    background: linear-gradient(90deg, #7C3AED, #9333EA);
+    color: #FFFFFF;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+  }
+
+  .brand-tele-sub {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-slate-muted);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+
+  .login-main-heading {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: var(--text-slate-dark);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.35rem;
+  }
+
+  .login-sub-heading {
+    font-size: 0.9rem;
+    color: var(--text-slate-muted);
+    margin-bottom: 1.75rem;
+  }
+
+  /* Form Inputs (Exact Reference Styling) */
+  .input-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.4rem;
+  }
+
+  .input-group-ref {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-icon-lead {
+    position: absolute;
+    left: 14px;
+    color: #94A3B8;
+    font-size: 1.05rem;
+    pointer-events: none;
+    z-index: 5;
+    transition: color 0.2s ease;
+  }
+
+  .form-control.ref-input-field {
+    height: 46px;
+    border: 1px solid var(--border-gray);
+    border-radius: 10px;
+    padding: 0 1rem 0 2.65rem;
+    font-size: 0.92rem;
+    color: var(--text-slate-dark);
+    background-color: #FFFFFF;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  }
+
+  .form-control.ref-input-field:focus {
+    border-color: #7C3AED;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    background-color: #FFFFFF;
+  }
+
+  .input-group-ref:focus-within .input-icon-lead {
+    color: #7C3AED;
+  }
+
+  .trailing-eye-action {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #94A3B8;
+    font-size: 1.15rem;
+    padding: 4px 6px;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+
+  .trailing-eye-action:hover {
+    color: #7C3AED;
+  }
+
+  /* Primary Button (Exact Reference Purple Gradient) */
+  .btn-purple-gradient {
+    height: 46px;
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #7C3AED 0%, #9333EA 50%, #A855F7 100%);
+    color: #FFFFFF;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    box-shadow: 0 4px 14px 0 rgba(147, 51, 234, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .btn-purple-gradient:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 6px 18px 0 rgba(147, 51, 234, 0.45);
+    transform: translateY(-1px);
+    color: #FFFFFF;
+  }
+
+  .btn-purple-gradient:active {
+    transform: translateY(0);
+  }
+
+  /* Divider */
+  .divider-wrap {
+    position: relative;
+    text-align: center;
+    margin: 1.5rem 0 1.25rem;
+  }
+
+  .divider-wrap hr {
+    border-color: #F1F5F9;
+    margin: 0;
+  }
+
+  .divider-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #FFFFFF;
+    padding: 0 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94A3B8;
+  }
+
+  /* Demo Fast-Fill Buttons (Clean White Bordered Aesthetic) */
+  .demo-fill-card {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-demo-clean {
+    flex: 1;
+    height: 38px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    transition: all 0.15s ease;
+  }
+
+  .btn-demo-clean:hover {
+    background-color: var(--purple-light);
+    border-color: #DDD6FE;
+    color: #7C3AED;
+  }
+
+  /* Bottom Footer */
+  .footer-encryption-tag {
+    text-align: center;
+    font-size: 0.76rem;
+    color: #94A3B8;
+    padding-top: 1.5rem;
+    margin-top: auto;
+  }
+</style>
+
+<div class="login-page-wrapper">
+  
+  <div class="login-split-card">
     
-    <!-- Header with Medical Branding -->
-    <div class="p-4 text-center bg-white border-bottom">
-      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="DR Vision AI" height="46" class="mb-2">
-      <h6 class="text-muted small mb-0">Rural Tele-Ophthalmology Decision Support Portal</h6>
-    </div>
+    <!-- ========================================================
+         LEFT SHOWCASE PANEL (~48% Width — Exact Visual Replica)
+         ======================================================== -->
+    <div class="left-showcase-panel d-none d-lg-flex">
+      
+      <!-- Scattered Pixel/Mosaic Background Tiles -->
+      <div class="mosaic-pixel" style="top: 7%; left: 14%; width: 26px; height: 26px; opacity: 0.35;"></div>
+      <div class="mosaic-pixel" style="top: 15%; left: 22%; width: 20px; height: 20px; opacity: 0.25;"></div>
+      <div class="mosaic-pixel" style="top: 8%; left: 38%; width: 28px; height: 28px; opacity: 0.30;"></div>
+      <div class="mosaic-pixel" style="top: 18%; left: 32%; width: 22px; height: 22px; opacity: 0.45;"></div>
+      <div class="mosaic-pixel" style="top: 11%; left: 56%; width: 26px; height: 26px; opacity: 0.30;"></div>
+      <div class="mosaic-pixel" style="top: 22%; left: 66%; width: 30px; height: 30px; opacity: 0.20;"></div>
+      <div class="mosaic-pixel" style="top: 6%; left: 76%; width: 24px; height: 24px; opacity: 0.35;"></div>
+      <div class="mosaic-pixel" style="top: 28%; left: 16%; width: 24px; height: 24px; opacity: 0.25;"></div>
+      <div class="mosaic-pixel" style="top: 38%; left: 7%; width: 28px; height: 28px; opacity: 0.30;"></div>
+      <div class="mosaic-pixel" style="top: 48%; left: 24%; width: 20px; height: 20px; opacity: 0.20;"></div>
 
-    <!-- Login Form Body -->
-    <div class="card-body p-4 bg-white">
-      <h5 class="fw-bold text-navy mb-1" style="color: #0F2B48;">Personnel Sign In</h5>
-      <p class="text-muted small mb-4">Authenticate with your primary health centre credentials.</p>
+      <!-- Slider Left Arrow Pill -->
+      <div class="slider-nav-pill" title="Previous Slide">
+        <i class="bi bi-chevron-left"></i>
+      </div>
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }} py-2 px-3 small mb-3">
-              {{ message }}
+      <!-- Top Empty Anchor for Spacing -->
+      <div></div>
+
+      <!-- Center Visual Stage: Floating Card + 3D Purple Circle Badges -->
+      <div class="showcase-visual-stage">
+        
+        <!-- 3D Purple Circle Badge 1 (Top: User/Doctor Check) -->
+        <div class="floating-badge badge-top" title="Doctor Decision Support">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+
+        <!-- 3D Purple Circle Badge 2 (Middle: Calendar / Retinal Scan) -->
+        <div class="floating-badge badge-mid" title="Retinal Screening Schedule">
+          <i class="bi bi-calendar-check-fill"></i>
+        </div>
+
+        <!-- 3D Purple Circle Badge 3 (Bottom: Stacked Layers / AI Diagnostics) -->
+        <div class="floating-badge badge-bottom" title="Multistage AI Inference">
+          <i class="bi bi-layers-fill"></i>
+        </div>
+
+        <!-- Center Floating White Card with Bottom Fade-Out Mask -->
+        <div class="floating-schedule-card">
+          
+          <div class="card-header-status">
+            <span class="status-dot-active"></span>
+            <span class="status-header-text">Active Screening Nodes</span>
+          </div>
+
+          <!-- Node Row 1 -->
+          <div class="doctor-row">
+            <div class="d-flex align-items-center gap-2">
+              <div class="doctor-avatar" style="background: linear-gradient(135deg, #10B981, #059669);">
+                <i class="bi bi-hospital"></i>
+              </div>
+              <div>
+                <div class="doctor-name">PHC Screening Unit 01</div>
+                <div class="doctor-specialty">Retinal Imaging Active</div>
+              </div>
             </div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <form method="POST" action="{{ url_for('auth.login') }}">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold text-secondary">Username or Staff ID</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-person-fill"></i></span>
-            <input type="text" name="username" id="usernameInput" class="form-control border-start-0 ps-0" placeholder="e.g. phc_worker or admin" required autofocus>
+            <div>
+              <div class="screening-stat-quota">12 screenings</div>
+              <div class="screening-stat-time">09:00 - 12:00 PM</div>
+            </div>
           </div>
-        </div>
 
-        <div class="mb-4">
-          <label class="form-label small fw-semibold text-secondary">Password</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-lock-fill"></i></span>
-            <input type="password" name="password" id="passwordInput" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
+          <!-- Node Row 2 -->
+          <div class="doctor-row">
+            <div class="d-flex align-items-center gap-2">
+              <div class="doctor-avatar" style="background: linear-gradient(135deg, #8B5CF6, #6D28D9);">
+                <i class="bi bi-person-badge"></i>
+              </div>
+              <div>
+                <div class="doctor-name">Dr. Ananya Rao</div>
+                <div class="doctor-specialty">Tele-Ophthalmologist</div>
+              </div>
+            </div>
+            <div>
+              <div class="screening-stat-quota">8 reviews pending</div>
+              <div class="screening-stat-time">09:00 - 01:00 PM</div>
+            </div>
           </div>
+
+          <!-- Node Row 3 -->
+          <div class="doctor-row">
+            <div class="d-flex align-items-center gap-2">
+              <div class="doctor-avatar" style="background: linear-gradient(135deg, #3B82F6, #1D4ED8);">
+                <i class="bi bi-diagram-3"></i>
+              </div>
+              <div>
+                <div class="doctor-name">District Eye Hub</div>
+                <div class="doctor-specialty">AI Triage &amp; Grading</div>
+              </div>
+            </div>
+            <div>
+              <div class="screening-stat-quota">25 scans today</div>
+              <div class="screening-stat-time">Real-time Sync</div>
+            </div>
+          </div>
+
+          <!-- Node Row 4 (Fading Out via Mask) -->
+          <div class="doctor-row">
+            <div class="d-flex align-items-center gap-2">
+              <div class="doctor-avatar" style="background: linear-gradient(135deg, #F59E0B, #D97706);">
+                <i class="bi bi-geo-alt"></i>
+              </div>
+              <div>
+                <div class="doctor-name">Rural Vision Outreach</div>
+                <div class="doctor-specialty">Primary Health Centre</div>
+              </div>
+            </div>
+            <div>
+              <div class="screening-stat-quota">5 referrals</div>
+              <div class="screening-stat-time">13:00 - 16:00 PM</div>
+            </div>
+          </div>
+
         </div>
 
-        <button type="submit" class="btn btn-medical-primary w-100 py-2 mb-3 shadow-sm">
-          <i class="bi bi-shield-lock-fill me-1"></i> Sign In to Screening Portal
-        </button>
-      </form>
+      </div>
 
-      <!-- Rural PHC Testing Fast-Fill Credentials -->
-      <div class="bg-light p-3 rounded-3 border">
-        <div class="small fw-bold text-secondary mb-2 text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-          <i class="bi bi-key-fill text-teal me-1"></i> Quick Login for Demonstrations:
-        </div>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-outline-primary flex-fill" onclick="fillCreds('phc_worker', 'worker123')">
-            <i class="bi bi-person-badge"></i> Health Worker
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-success flex-fill" onclick="fillCreds('dr_patil', 'doctor123')">
-            <i class="bi bi-heart-pulse"></i> Medical Officer
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary flex-fill" onclick="fillCreds('admin', 'admin123')">
-            <i class="bi bi-gear"></i> Admin
-          </button>
+      <!-- Bottom Captions & Carousel Dots (Exact Typography & Spacing) -->
+      <div class="showcase-bottom-content">
+        <h3 class="showcase-headline">AI-Assisted Retinal Screening &amp; Decision Support</h3>
+        <p class="showcase-subtext">Empowering primary health centres with real-time tele-ophthalmology diagnostics.</p>
+        <div class="carousel-dots">
+          <span class="dot-pill active"></span>
+          <span class="dot-pill"></span>
+          <span class="dot-pill"></span>
         </div>
       </div>
 
     </div>
 
-    <!-- Security & Ethics Footer -->
-    <div class="card-footer bg-light border-top p-3 text-center text-muted small" style="font-size: 0.75rem;">
-      <i class="bi bi-shield-check text-success me-1"></i> 256-bit Encrypted Medical Session &bull; National Telehealth Standards
+    <!-- ========================================================
+         RIGHT LOGIN PANEL (~52% Width — DR VISION AI Auth Stack)
+         ======================================================== -->
+    <div class="right-login-panel">
+      
+      <!-- Centered Form Wrapper -->
+      <div class="form-inner-container my-auto">
+        
+        <!-- Top Centered Brand Logo (Matching Reference Icon Placement) -->
+        <div class="text-center mb-3">
+          <div class="top-brand-icon-box">
+            <!-- Retinal Eye / AI Aperture Glowing Vector -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 12C2 12 5.63636 5 12 5C18.3636 5 22 12 22 12C22 12 18.3636 19 12 19C5.63636 19 2 12 2 12Z" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3.5" fill="#FFFFFF"/>
+              <circle cx="13" cy="11" r="1.2" fill="#7C3AED"/>
+            </svg>
+          </div>
+          <div class="brand-badge-pill">
+            <span class="brand-title-main">DR VISION</span>
+            <span class="brand-ai-tag">AI</span>
+          </div>
+          <div class="brand-tele-sub">RURAL TELE-OPHTHALMOLOGY</div>
+        </div>
+
+        <!-- Centered Headings -->
+        <div class="text-center">
+          <h1 class="login-main-heading">Personnel Sign In</h1>
+          <p class="login-sub-heading">Authenticate with your primary health centre credentials.</p>
+        </div>
+
+        <!-- Flashed System Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show py-2 px-3 small mb-3 border-0 rounded-3 shadow-sm" role="alert">
+                <div class="d-flex align-items-center gap-2">
+                  {% if category == 'danger' %}
+                    <i class="bi bi-exclamation-circle-fill text-danger fs-6"></i>
+                  {% elif category == 'success' %}
+                    <i class="bi bi-check-circle-fill text-success fs-6"></i>
+                  {% else %}
+                    <i class="bi bi-info-circle-fill text-primary fs-6"></i>
+                  {% endif %}
+                  <span>{{ message }}</span>
+                </div>
+                <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Authentication Form -->
+        <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
+          
+          <!-- Username / Staff ID Input -->
+          <div class="mb-3">
+            <label class="input-label" for="usernameInput">Username or Staff ID</label>
+            <div class="input-group-ref">
+              <i class="bi bi-person input-icon-lead"></i>
+              <input 
+                type="text" 
+                name="username" 
+                id="usernameInput" 
+                class="form-control ref-input-field" 
+                placeholder="e.g. phc_worker or admin" 
+                required 
+                autofocus 
+                autocomplete="username">
+            </div>
+          </div>
+
+          <!-- Password Input with Trailing Eye Toggle -->
+          <div class="mb-4">
+            <label class="input-label" for="passwordInput">Password</label>
+            <div class="input-group-ref">
+              <i class="bi bi-lock input-icon-lead"></i>
+              <input 
+                type="password" 
+                name="password" 
+                id="passwordInput" 
+                class="form-control ref-input-field" 
+                placeholder="••••••••" 
+                required 
+                autocomplete="current-password">
+              <button 
+                type="button" 
+                class="trailing-eye-action" 
+                id="togglePasswordBtn" 
+                title="Toggle password visibility" 
+                aria-label="Toggle password visibility"
+                onclick="togglePasswordVisibility()">
+                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Primary CTA Button (Exact Reference Purple Gradient) -->
+          <button type="submit" class="btn-purple-gradient mb-3">
+            <i class="bi bi-shield-lock-fill"></i> Sign In to Screening Portal
+          </button>
+
+          <!-- Divider & Quick Login Section -->
+          <div class="divider-wrap">
+            <hr>
+            <span class="divider-text text-uppercase">Or</span>
+          </div>
+
+          <!-- Quick Login Demo Buttons (Preserved Clean White Aesthetic) -->
+          <div class="demo-fill-card">
+            <button type="button" class="btn-demo-clean" onclick="fillCreds('phc_worker', 'worker123')" title="Fill Health Worker Credentials">
+              <i class="bi bi-person-badge text-primary"></i> Health Worker
+            </button>
+            <button type="button" class="btn-demo-clean" onclick="fillCreds('dr_patil', 'doctor123')" title="Fill Doctor Credentials">
+              <i class="bi bi-heart-pulse text-danger"></i> Medical Officer
+            </button>
+            <button type="button" class="btn-demo-clean" onclick="fillCreds('admin', 'admin123')" title="Fill Admin Credentials">
+              <i class="bi bi-gear text-secondary"></i> Admin
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+
+      <!-- Bottom Security & Ethics Footer (Exact Reference Placement) -->
+      <div class="footer-encryption-tag">
+        <i class="bi bi-shield-check text-success me-1"></i> 256-bit Encrypted Medical Session &bull; National Telehealth Standards
+      </div>
+
     </div>
 
   </div>
+
 </div>
 
 <script>
-function fillCreds(u, p) {
-  document.getElementById('usernameInput').value = u;
-  document.getElementById('passwordInput').value = p;
-}
+  // Toggle Password Masking
+  function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('passwordInput');
+    const toggleIcon = document.getElementById('togglePasswordIcon');
+    if (!passwordInput || !toggleIcon) return;
+
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      toggleIcon.classList.remove('bi-eye');
+      toggleIcon.classList.add('bi-eye-slash');
+    } else {
+      passwordInput.type = 'password';
+      toggleIcon.classList.remove('bi-eye-slash');
+      toggleIcon.classList.add('bi-eye');
+    }
+  }
+
+  // Quick Demo Credentials Population
+  function fillCreds(username, password) {
+    const uInput = document.getElementById('usernameInput');
+    const pInput = document.getElementById('passwordInput');
+    if (uInput) uInput.value = username;
+    if (pInput) pInput.value = password;
+  }
 </script>
 {% endblock %}

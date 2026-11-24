@@ -82,5 +82,14 @@
   "pat_duration": "अवधि (वर्ष)",
   "pat_glucose": "रक्त शर्करा स्तर (mg/dL)",
   "pat_last_exam": "पिछली आंख जांच",
-  "pat_notes": "अतिरिक्त नोट्स"
+  "pat_notes": "अतिरिक्त नोट्स",
+
+  "quality_gate_passed": "सटीकता गुणवत्ता गेट सफल",
+  "quality_gate_warning": "चेतावनी: विशेषज्ञ समीक्षा अनुशंसित (अस्पष्ट अंतर)",
+  "status_pending": "चिकित्सक समीक्षा लंबित",
+  "status_verified": "चिकित्सक द्वारा सत्यापित",
+  "status_modified": "चिकित्सक द्वारा संशोधित",
+  "status_rejected": "अस्वीकृत (पुनः फोटो आवश्यक)",
+  "tts_listen": "निदान सुनें",
+  "tts_playing": "ध्वनि विवरण चल रहा है"
 }

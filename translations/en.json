@@ -82,5 +82,14 @@
   "pat_duration": "Duration (Years)",
   "pat_glucose": "Blood Glucose (mg/dL)",
   "pat_last_exam": "Last Eye Exam",
-  "pat_notes": "Clinical Notes"
+  "pat_notes": "Clinical Notes",
+
+  "quality_gate_passed": "Certainty Quality Gate Passed",
+  "quality_gate_warning": "Certainty Quality Gate: Specialist Review Recommended (Ambiguous Margin)",
+  "status_pending": "Pending Doctor Review",
+  "status_verified": "Doctor Verified",
+  "status_modified": "Doctor Modified",
+  "status_rejected": "Rejected (Re-capture Required)",
+  "tts_listen": "Listen to Diagnosis",
+  "tts_playing": "Playing Spoken Diagnosis"
 }

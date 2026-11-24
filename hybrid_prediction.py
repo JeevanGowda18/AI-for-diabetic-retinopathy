@@ -52,6 +52,10 @@ class HybridPredictionEngine:
             agreement status, and Top-2 margin quality gate evaluation.
         """
         # 1. Primary Model (ResNet-50 / DRClassifier)
+        if not self.primary_service.is_available or self.primary_service.model is None:
+            raise RuntimeError(
+                "Primary model weights are not loaded. Cannot run inference without valid weights."
+            )
         primary_res = self.primary_service.predict(tensor)
 
         # 2. DR-Mini AI (EfficientNet-B0)
@@ -112,8 +116,8 @@ class HybridPredictionEngine:
         # Apply Top-2 Margin Quality Gate (F-04)
         gate_eval = assess_prediction_quality_gate(
             fused_probs,
-            min_confidence=0.50,
-            min_top2_margin=0.15
+            min_confidence=getattr(Config, 'CONFIDENCE_THRESHOLD', 0.50),
+            min_top2_margin=getattr(Config, 'TOP2_MARGIN_THRESHOLD', 0.15)
         )
 
         grade_meta = Config.DR_CLASSES.get(fused_grade, Config.DR_CLASSES[0])

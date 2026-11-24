@@ -102,11 +102,13 @@ class GradCAM:
         heatmap = np.maximum(heatmap, 0) # ReLU
 
         # Normalize between 0 and 1
-        max_val = np.max(heatmap)
+        max_val = float(np.max(heatmap))
         if max_val > 1e-7:
             heatmap = heatmap / max_val
+            self.last_heatmap_valid = True
         else:
             heatmap = np.zeros_like(heatmap)
+            self.last_heatmap_valid = False
 
         return heatmap, target_class
 
@@ -150,7 +152,22 @@ class GradCAM:
         
         dominant_quadrant = max(quadrant_scores, key=quadrant_scores.get)
         peak_intensity = float(np.max(heatmap))
-        
+        is_valid = peak_intensity > 1e-7
+
+        if not is_valid:
+            return {
+                'dominant_quadrant': 'Indeterminate',
+                'quadrant_scores': {
+                    'Superior-Nasal': 0.0,
+                    'Superior-Temporal': 0.0,
+                    'Inferior-Nasal': 0.0,
+                    'Inferior-Temporal': 0.0
+                },
+                'is_central': False,
+                'is_valid': False,
+                'text_explanation': 'Grad-CAM did not detect discriminative convolutional saliency (flat activation map). Visual explanation unavailable.'
+            }
+
         # Center proximity (Macular / Peripapillary region)
         center_region = heatmap[int(h*0.3):int(h*0.7), int(w*0.3):int(w*0.7)]
         center_mean = float(np.mean(center_region)) if center_region.size > 0 else 0.0
