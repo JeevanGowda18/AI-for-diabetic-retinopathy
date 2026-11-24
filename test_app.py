@@ -164,7 +164,7 @@ class DRVisionAITestCase(unittest.TestCase):
         self.assertIn(b"Diabetic Retinopathy Screening Results", resp.data)
         self.assertIn(b"Grad-CAM Attention Map", resp.data)
         self.assertIn(b"probDistChart", resp.data)
-        self.assertIn(b"Download Official PDF Report", resp.data)
+        self.assertIn(b"Digital PDF", resp.data)
         print("[TEST 05 PASSED] Full AI screening pipeline, Grad-CAM, and results page verified.")
 
     def test_06_pdf_report_download(self):
@@ -178,8 +178,10 @@ class DRVisionAITestCase(unittest.TestCase):
         resp = self.client.get(f'/reports/download/{screening_id}')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.mimetype, 'application/pdf')
-        self.assertTrue(len(resp.data) > 1000)
-        print(f"[TEST 06 PASSED] Official PDF report download verified ({len(resp.data)} bytes).")
+        data_len = len(resp.data)
+        resp.close()
+        self.assertTrue(data_len > 1000)
+        print(f"[TEST 06 PASSED] Official PDF report download verified ({data_len} bytes).")
 
     def test_07_multilingual_language_switching(self):
         """Tests switching between English, Kannada (ಕನ್ನಡ), and Hindi (हिन्दी)."""
@@ -275,6 +277,7 @@ class DRVisionAITestCase(unittest.TestCase):
 
     def test_12_doctor_in_the_loop_verification(self):
         """Verifies Doctor-in-the-Loop review, approval, and modification workflow (F-06)."""
+        self.logout()
         self.login(username='dr_patil', password='doctor123')
         conn = get_db_connection()
         scr = conn.execute("SELECT screening_id FROM screenings ORDER BY id DESC LIMIT 1").fetchone()
@@ -312,6 +315,7 @@ class DRVisionAITestCase(unittest.TestCase):
 
     def test_13_dual_pdf_reports_and_email_dispatch(self):
         """Verifies dual PDF reports (printable and digital) and email dispatch (F-08)."""
+        self.logout()
         self.login()
         conn = get_db_connection()
         scr = conn.execute("SELECT screening_id FROM screenings ORDER BY id DESC LIMIT 1").fetchone()
@@ -322,13 +326,17 @@ class DRVisionAITestCase(unittest.TestCase):
         resp_print = self.client.get(f'/reports/download/{scr_id}?type=printable')
         self.assertEqual(resp_print.status_code, 200)
         self.assertEqual(resp_print.mimetype, 'application/pdf')
-        self.assertTrue(len(resp_print.data) > 1000)
+        len_print = len(resp_print.data)
+        resp_print.close()
+        self.assertTrue(len_print > 1000)
 
         # 2. Download Digital Report
         resp_digi = self.client.get(f'/reports/download/{scr_id}?type=digital')
         self.assertEqual(resp_digi.status_code, 200)
         self.assertEqual(resp_digi.mimetype, 'application/pdf')
-        self.assertTrue(len(resp_digi.data) > 1000)
+        len_digi = len(resp_digi.data)
+        resp_digi.close()
+        self.assertTrue(len_digi > 1000)
 
         # 3. Email Dispatch (Offline PHC Logging Mode)
         resp_mail = self.client.post(f'/reports/email/{scr_id}', data={
