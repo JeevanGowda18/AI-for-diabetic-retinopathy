@@ -1,0 +1,242 @@
+{
+  "resnet50": {
+    "accuracy": 0.9818181818181818,
+    "macro_precision": 0.9833333333333332,
+    "macro_recall": 0.9818181818181818,
+    "macro_f1": 0.9817805383022774,
+    "quadratic_weighted_kappa": 0.9953917050691244,
+    "referable_dr_sensitivity": 1.0,
+    "referable_dr_specificity": 1.0,
+    "median_latency_ms": 89.83100000023114,
+    "model_size_mb": 91.9834394454956,
+    "confusion_matrix": [
+      [
+        11,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        11,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        11,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        11,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        10
+      ]
+    ]
+  },
+  "efficientnet_b0": {
+    "accuracy": 0.9272727272727272,
+    "macro_precision": 0.9404761904761905,
+    "macro_recall": 0.9272727272727274,
+    "macro_f1": 0.9262015909338563,
+    "quadratic_weighted_kappa": 0.9823008849557522,
+    "referable_dr_sensitivity": 1.0,
+    "referable_dr_specificity": 1.0,
+    "median_latency_ms": 28.87719999989713,
+    "model_size_mb": 15.596318244934082,
+    "confusion_matrix": [
+      [
+        11,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        8,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        11,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        11,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        10
+      ]
+    ]
+  },
+  "densenet121": {
+    "accuracy": 0.6363636363636364,
+    "macro_precision": 0.6436363636363637,
+    "macro_recall": 0.6363636363636364,
+    "macro_f1": 0.6245895408938887,
+    "quadratic_weighted_kappa": 0.3738317757009345,
+    "referable_dr_sensitivity": 0.8787878787878788,
+    "referable_dr_specificity": 0.5909090909090909,
+    "median_latency_ms": 125.14090000013312,
+    "model_size_mb": 27.12001609802246,
+    "confusion_matrix": [
+      [
+        3,
+        4,
+        0,
+        0,
+        4
+      ],
+      [
+        1,
+        5,
+        1,
+        0,
+        4
+      ],
+      [
+        1,
+        1,
+        9,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        11,
+        0
+      ],
+      [
+        0,
+        2,
+        1,
+        1,
+        7
+      ]
+    ]
+  },
+  "mobilenet_v3": {
+    "accuracy": 0.2,
+    "macro_precision": 0.04,
+    "macro_recall": 0.2,
+    "macro_f1": 0.06666666666666667,
+    "quadratic_weighted_kappa": 0.0,
+    "referable_dr_sensitivity": 1.0,
+    "referable_dr_specificity": 0.0,
+    "median_latency_ms": 25.559400000020105,
+    "model_size_mb": 12.475275993347168,
+    "confusion_matrix": [
+      [
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        11
+      ]
+    ]
+  },
+  "hybrid_consensus": {
+    "accuracy": 0.9636363636363636,
+    "macro_precision": 0.9666666666666666,
+    "macro_recall": 0.9636363636363636,
+    "macro_f1": 0.9635610766045548,
+    "quadratic_weighted_kappa": 0.990909090909091,
+    "referable_dr_sensitivity": 1.0,
+    "referable_dr_specificity": 1.0,
+    "median_latency_ms": 118.70820000012827,
+    "model_size_mb": 107.57975769042969,
+    "confusion_matrix": [
+      [
+        11,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        11,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        11,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        10
+      ]
+    ]
+  }
+}

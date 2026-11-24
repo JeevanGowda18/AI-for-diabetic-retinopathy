@@ -34,47 +34,53 @@ Retinal images captured with handheld or desktop cameras in rural clinics often 
 * **Circular Border Cropping:** Removes uninformative peripheral black borders while strictly preserving aspect ratio.
 * **Vascular Edge Clarification:** Mild unsharp masking calibrated to avoid artificial lesion artifacts.
 
-### 3. 5-Class ICDR Diabetic Retinopathy Classification
-Adapted ResNet-50 deep learning architecture classifying retinal fundus images according to the International Clinical Diabetic Retinopathy (ICDR) scale:
+## The Eight Core Features of DR Vision AI
+
+### F-01: Five-Stage Diabetic Retinopathy Classification
+Adapted deep learning architecture classifying retinal fundus images according to the International Clinical Diabetic Retinopathy (ICDR) scale:
 * **Grade 0: No DR** &mdash; Healthy retina baseline; annual screening recommended.
 * **Grade 1: Mild NPDR** &mdash; Isolated microaneurysms; 6-12 month follow-up.
 * **Grade 2: Moderate NPDR** &mdash; Microaneurysms, blot hemorrhages, hard exudates; specialist referral within 2-3 months.
 * **Grade 3: Severe NPDR** &mdash; 4-2-1 criteria (extensive multi-quadrant hemorrhages); urgent referral within 2-4 weeks.
 * **Grade 4: Proliferative DR (PDR)** &mdash; Neovascularization (NVD/NVE), preretinal/vitreous hemorrhage; emergency referral within 48-72 hours.
+* **Hybrid Multi-Model Consensus Engine:** Predicts using a fusion of Primary ResNet-50 (`models/dr_resnet50_weights.pth`) and specialized lightweight DR-Mini AI EfficientNet-B0 (`models/dr_mini_weights.pth`), with architectural readiness for RETFound ViT-Large/16.
 
-### 4. Transparent Explainable AI via Grad-CAM
+### F-02: Transparent Explainable AI via Grad-CAM
 * Registers PyTorch forward and backward gradient hooks on the final convolutional bottleneck layer (`layer4[-1]`).
 * Computes weighted activation maps and projects thermal colormap overlays (JET) directly onto original fundus photographs.
 * Automatically analyzes spatial attention across retinal quadrants (Superior-Temporal, Superior-Nasal, Inferior-Temporal, Inferior-Nasal) and central macular zones.
 * **Ethical Transparency:** Explicitly reminds healthcare workers that Grad-CAM depicts deep neural saliency, not definitive histological pathology.
 
-### 5. Computer Vision Structure & Candidate Lesion Detection
-Auxiliary visual heuristics identifying:
-* **Optic Disc (OD) Localization:** Brightest compact circular region with boundary ring.
-* **Macula / Fovea Centralis Center:** Anatomical spatial localization.
-* **Retinal Blood Vessel Tree:** Morphological top-hat segmentation across the green channel.
-* **Candidate Lesion Markers:** Red bounding circles for microaneurysms/hemorrhages; yellow markers for bright exudates.
+### F-03: Automated Eye Detection & Cropping (Gemini Vision AI)
+* Automatically detects the retinal circular field of view and crops peripheral black borders.
+* Powered by Google Gemini Vision AI (`gemini-1.5-flash` / `gemini-pro-vision`) when `GEMINI_API_KEY` is configured.
+* Certified zero-failure OpenCV contour circle detector fallback when operating in offline rural health posts without internet access.
 
-### 6. Official Clinical PDF Screening Reports (ReportLab)
-Generates A4-formatted, print-ready medical screening summaries:
-* PHC and Health Department header branding.
-* Full patient demographics, village, and diabetes duration.
-* Side-by-side original fundus, CLAHE-enhanced image, and Grad-CAM overlay.
-* 5-class softmax probability breakdown and quality metrics.
-* Clinically reviewed referral protocol recommendations.
-* Statutory legal and clinical medical disclaimers.
+### F-04: Model Confidence and Top-2 Margin Quality Gate
+* Computes model confidence and the numerical margin between the top two predicted class probabilities ($P_{top1} - P_{top2}$).
+* If confidence falls below 50% or the top-2 margin is narrower than 15%, the case is automatically flagged as uncertain and quarantined for clinical doctor review.
 
-### 7. Multilingual Support
-Full localization across:
-* **English (EN)**
-* **Kannada - ಕನ್ನಡ (KN)** (Tailored for Karnataka rural health posts)
-* **Hindi - हिन्दी (HI)**
+### F-05: Multilingual Medical Explanations and Text-to-Speech (TTS)
+* Full localization across three languages:
+  * **English (EN)**
+  * **Kannada - ಕನ್ನಡ (KN)** (Tailored for Karnataka rural health posts)
+  * **Hindi - हिन्दी (HI)**
+* Spoken voice explanations powered by `gTTS` with client-side browser Web Speech API fallback for offline rural clinics.
 
-### 8. Strict Model Weights Integrity & Ethical Disclosure
-In compliance with clinical AI transparency:
-* The system never pretends a random network is a validated diagnostic tool.
-* An explicit banner and status flag distinguish between **Production Model Mode** (when weights fine-tuned on APTOS 2019/EyePACS are loaded) and **Calibrated Demonstration Mode** (for workflow testing and training).
-* A built-in CLI integrator utility (`models/weights_downloader.py`) enables authorized health departments to deploy validated `.pth` weights seamlessly.
+### F-06: Strict Clinical Gating & Doctor-in-the-Loop Verification
+* Every AI screening is logged as `Pending` until formally signed off by medical personnel.
+* Primary Care Medical Officers and consulting ophthalmologists can verify, modify (assign clinical grade 0-4), or reject ungradable scans with clinical notes and audit timestamps.
+* Distinguishes between AI-assisted predictions and doctor-verified outcomes on all digital and printed records.
+
+### F-07: Patient Registration & Longitudinal Visit History
+* Tracks patients with unique auto-generated IDs (`DR-YYYY-XXXX`).
+* Rigorously isolates Left Eye (OS) and Right Eye (OD) clinical records to avoid accidental cross-contamination.
+* Comprehensive longitudinal progression timeline displays past screening dates, grades, visual comparisons, and clinical notes.
+
+### F-08: Dual PDF Report Generation & Email Dispatch
+* **Printable Hard-Copy Report:** High-contrast, black-and-white ink-saving layout optimized for standard PHC thermal or laser printers.
+* **Digital Soft-Copy Report:** Full-color, high-fidelity report featuring original fundus, CLAHE-enhanced image, Grad-CAM attention heatmap, computer vision anatomical structures, 5-class probability chart, multilingual summary, and audit stamp.
+* **Email Dispatch:** Directly delivers PDF clinical summaries to district hospital eye desks or patients, with offline PHC audit trail logging.
 
 ---
 

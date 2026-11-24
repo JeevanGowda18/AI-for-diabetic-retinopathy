@@ -44,6 +44,9 @@ static/uploads/*_test_*
 # Dynamic screening reports (preserve initial sample demonstration PDFs)
 static/uploads/SCR-2026-010[6-9]_*
 static/uploads/SCR-2026-011[0-9]_*
+static/uploads/SCR-2026-012[0-9]_*
+static/uploads/*_printable.pdf
+static/uploads/audio/
 static/uploads/SCR-2026-0106_report.pdf
 static/uploads/SCR-2026-0107_report.pdf
 static/uploads/SCR-2026-0108_report.pdf
