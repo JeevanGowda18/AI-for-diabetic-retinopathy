@@ -260,6 +260,10 @@ def generate_screening_pdf(
     else:
         retfound_str = "Weights Required (Manual Download)"
 
+    # Quality gate information
+    quality_gate_passed = screening_data.get('quality_gate_passed')
+    qgate_str = "Passed Certainty Gate" if (quality_gate_passed is None or quality_gate_passed == 1) else "Review Recommended (Narrow Margin)"
+
     findings_data = [
         [
             Paragraph("<b>Primary AI Verdict:</b>", body_style),
@@ -276,8 +280,8 @@ def generate_screening_pdf(
         [
             Paragraph("<b>Clinical Verification:</b>", body_style),
             Paragraph(f"<b>{verif_status}</b>", body_style),
-            Paragraph("<b>Referral Urgency:</b>", body_style),
-            Paragraph(f"<b>{referral_urgency}</b>", body_style)
+            Paragraph("<b>Quality Gate Status:</b>", body_style),
+            Paragraph(f"<b>{qgate_str}</b>", body_style)
         ]
     ]
 
@@ -348,17 +352,26 @@ def generate_screening_pdf(
     # -------------------------------------------------------------
     verified_by = screening_data.get('verified_by_name') or Config.PHC_DEFAULT['medical_officer']
     verified_text = f"<b>Medical Officer Review:</b> {verified_by} ({verif_status})"
+    doctor_notes = screening_data.get('doctor_notes')
 
     sig_data = [
         [
             Paragraph(f"<b>Screened By:</b> {Config.PHC_DEFAULT['operator_role']}", subtitle_style),
             Paragraph(verified_text, subtitle_style)
-        ],
-        [
-            Paragraph("Shirur Primary Health Centre", subtitle_style),
-            Paragraph("Signature / Stamp: ___________________________", subtitle_style)
         ]
     ]
+
+    if doctor_notes:
+        sig_data.append([
+            Paragraph("<b>Clinical Sign-off Remarks:</b>", subtitle_style),
+            Paragraph(f"<i>{doctor_notes}</i>", body_style)
+        ])
+
+    sig_data.append([
+        Paragraph("Shirur Primary Health Centre", subtitle_style),
+        Paragraph("Signature / Stamp: ___________________________", subtitle_style)
+    ])
+
     sig_table = Table(sig_data, colWidths=[3.6 * inch, 3.6 * inch])
     sig_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -436,7 +449,28 @@ def send_screening_email(
             print(f"[Email Dispatch] Report {scr_id} successfully sent to {recipient_email}")
             return {'success': True, 'mode': 'smtp_dispatched', 'recipient': recipient_email}
         except Exception as exc:
-            print(f"[Email Dispatch Warning] SMTP transmission failed: {exc}. Logging to audit trail.")
+            print(f"[Email Dispatch Warning] SMTP transmission failed: {exc}. Logging error to audit trail.")
+            try:
+                conn = get_db_connection()
+                conn.execute(
+                    """INSERT INTO audit_logs (user_id, action, details)
+                       VALUES (?, ?, ?)""",
+                    (
+                        1,
+                        'EMAIL_REPORT_DISPATCH_FAILURE',
+                        json.dumps({
+                            'screening_id': scr_id,
+                            'recipient': recipient_email,
+                            'error': str(exc),
+                            'timestamp': datetime.now().isoformat()
+                        })
+                    )
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
+            return {'success': False, 'mode': 'smtp_failed', 'error': str(exc), 'recipient': recipient_email}
 
     # Graceful Fallback for Rural PHCs
     try:

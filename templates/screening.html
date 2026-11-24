@@ -138,9 +138,18 @@
             <!-- Dynamically populated via AJAX in main.js -->
           </div>
 
+          {% if not model_info.is_available %}
+          <div class="alert alert-danger d-flex align-items-center mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+            <div class="small">
+              <strong>Model Weights Required:</strong> Deep learning model weights are not installed. AI diagnostic screening is disabled until valid weights are deployed at <code>models/dr_resnet50_weights.pth</code>.
+            </div>
+          </div>
+          {% endif %}
+
           <!-- Submit CTA Button -->
           <div class="d-grid mt-4">
-            <button type="submit" id="runAiBtn" class="btn btn-medical-teal py-3 fw-bold fs-6 shadow">
+            <button type="submit" id="runAiBtn" class="btn btn-medical-teal py-3 fw-bold fs-6 shadow" {% if not model_info.is_available %}disabled title="Model weights must be deployed to run screening"{% endif %}>
               <i class="bi bi-cpu-fill me-2"></i> {{ t.btn_run_ai }}
             </button>
           </div>

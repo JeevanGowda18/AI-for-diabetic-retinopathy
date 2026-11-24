@@ -35,7 +35,7 @@
 
       <!-- Digital PDF Button -->
       <a href="{{ url_for('reports.download_pdf', screening_id=scr.screening_id, type='digital') }}" class="btn btn-medical-primary btn-sm shadow-sm" target="_blank">
-        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Digital PDF
+        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download Official PDF Report
       </a>
 
       <!-- Email Report Button -->
@@ -146,6 +146,29 @@
     </div>
   </div>
 
+  <!-- Quality Gate Advisory Warning (Feature 4: Top-2 Margin Quality Gate) -->
+  {% if quality_gate and not quality_gate.gate_passed %}
+  <div class="alert alert-warning border-warning p-3 mb-4 shadow-sm" role="alert">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-exclamation-triangle-fill fs-3 text-warning"></i>
+      <div>
+        <h6 class="fw-bold text-dark mb-1">
+          <i class="bi bi-shield-exclamation me-1"></i> Quality Gate Advisory: Specialist Clinical Review Required
+        </h6>
+        <div class="mb-1 small text-dark">
+          This diagnostic assessment did not pass the certainty quality gate:
+          {% for r in quality_gate.flag_reasons %}
+            <div class="ps-2">&bull; <strong>{{ r }}</strong></div>
+          {% endfor %}
+        </div>
+        <span class="small text-muted">
+          Top-2 Margin: <strong>{{ (quality_gate.top2_margin * 100)|round(1) }}%</strong>. Both Grade {{ quality_gate.top1_class }} and Grade {{ quality_gate.top2_class }} must be clinically reviewed by the Medical Officer before issuing a final referral.
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Multi-Model & Hybrid Comparison Panel -->
   <div class="card border mb-4 shadow-sm">
     <div class="card-header bg-light py-3">
@@ -234,7 +257,7 @@
     <!-- 3. Grad-CAM Explainability Attention Map -->
     <div class="col-12 col-md-6 col-xl-3">
       <div class="medical-card h-100 p-3 text-center border-teal">
-        <h6 class="fw-bold text-teal mb-2">3. Grad-CAM Attention Map</h6>
+        <h6 class="fw-bold text-teal mb-2">3. Grad-CAM Attention Map (Saliency)</h6>
         <div class="bg-black rounded overflow-hidden position-relative" style="height: 250px;">
           <img src="{{ url_for('static', filename=scr.gradcam_image_path.replace('static/', '')) }}" alt="Grad-CAM Saliency" class="w-100 h-100 object-fit-contain">
           <span class="position-absolute bottom-0 start-0 m-2 badge bg-dark bg-opacity-75 text-white small" style="font-size: 0.68rem;">

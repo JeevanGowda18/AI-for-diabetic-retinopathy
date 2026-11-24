@@ -21,7 +21,8 @@ class ModelService:
         self.model = None
         self.weights_path = Path(Config.MODEL_WEIGHTS_PATH)
         self.status = "uninitialized"
-        self.is_demo_mode = True
+        self.is_demo_mode = False
+        self.is_available = False
         self.status_message = "Model not initialized"
         self.dataset_info = {
             'target_dataset': 'APTOS 2019 / EyePACS Retinal Fundus Dataset',
@@ -37,46 +38,62 @@ class ModelService:
             cls._instance = ModelService()
         return cls._instance
 
-    def load_model(self):
-        """Loads weights from disk or initializes fallback demonstration mode."""
-        self.model = DRResNet50(num_classes=5, pretrained_backbone=False)
-        self.model.to(self.device)
+    @classmethod
+    def reset_instance(cls):
+        """Forces re-initialization of ModelService (useful for test isolation)."""
+        cls._instance = None
 
+    def load_model(self):
+        """Loads weights from disk; never uses uncalibrated random weights for screening."""
         demo_weights_path = self.weights_path.parent / 'dr_demo_weights.pth'
 
+        # 1. Check for validated production weights
         if self.weights_path.exists():
             try:
+                self.model = DRResNet50(num_classes=5, pretrained_backbone=False)
+                self.model.to(self.device)
                 state_dict = torch.load(self.weights_path, map_location=self.device)
                 self.model.load_state_dict(state_dict)
                 self.model.eval()
                 self.status = "production_trained"
                 self.is_demo_mode = False
-                self.status_message = f"Validated DR Weights Loaded ({self.weights_path.name})"
+                self.is_available = True
+                self.status_message = f"Validated DR Production Weights Loaded ({self.weights_path.name})"
                 print(f"[AI Model] Successfully loaded production weights from {self.weights_path}")
                 return
             except Exception as e:
                 print(f"[AI Model Error] Failed to load production weights: {e}")
+                self.model = None
 
-        # Check for demo weights
+        # 2. Check for calibrated demonstration weights
         if demo_weights_path.exists():
             try:
+                self.model = DRResNet50(num_classes=5, pretrained_backbone=False)
+                self.model.to(self.device)
                 state_dict = torch.load(demo_weights_path, map_location=self.device)
                 self.model.load_state_dict(state_dict)
                 self.model.eval()
                 self.status = "demo_calibrated"
                 self.is_demo_mode = True
+                self.is_available = True
                 self.status_message = "Demonstration Mode Active (Calibrated Synthetic Model for Workflow Testing)"
                 print(f"[AI Model] Running in Demonstration Mode from {demo_weights_path}")
                 return
             except Exception as e:
                 print(f"[AI Model Error] Failed loading demo weights: {e}")
+                self.model = None
 
-        # If neither exists, construct calibrated baseline model in-memory for safe testing
-        self._initialize_baseline_weights()
-        self.model.eval()
-        self.status = "demo_calibrated"
-        self.is_demo_mode = True
-        self.status_message = "Demonstration Mode Active (No weights on disk; in-memory baseline initialized for workflow testing)"
+        # 3. Unsafe random-weight fallback removed - strictly require valid weights
+        self.model = None
+        self.status = "weights_unavailable"
+        self.is_demo_mode = False
+        self.is_available = False
+        self.status_message = (
+            f"Trained model weights not found. Please provide valid weights at "
+            f"'{self.weights_path}' (production) or '{demo_weights_path}' (demonstration) "
+            "to enable clinical AI screening."
+        )
+        print(f"[AI Model Notice] {self.status_message}")
 
     def _initialize_baseline_weights(self, save_path=None):
         """Generates calibrated weights in-memory with controlled variance to allow functional testing without clinical misrepresentation."""
@@ -116,8 +133,12 @@ class ModelService:
             logits: list of 5 floats (unnormalized log-odds)
             model_info: metadata dictionary
         """
-        if self.model is None:
-            raise RuntimeError("Model is not initialized.")
+        if not self.is_available or self.model is None:
+            raise RuntimeError(
+                "AI Screening is unavailable: Valid trained model weights are not loaded. "
+                "Please deploy validated production weights at models/dr_resnet50_weights.pth "
+                "or run weights downloader utility."
+            )
 
         tensor = tensor.to(self.device)
         self.model.eval()
@@ -153,12 +174,14 @@ class ModelService:
 
     def get_info(self):
         """Returns model deployment status and training documentation."""
+        demo_weights_path = self.weights_path.parent / 'dr_demo_weights.pth'
         return {
             'status': self.status,
+            'is_available': self.is_available,
             'is_demo_mode': self.is_demo_mode,
             'status_message': self.status_message,
             'weights_path': str(self.weights_path),
-            'weights_exist': self.weights_path.exists(),
+            'weights_exist': self.weights_path.exists() or demo_weights_path.exists(),
             'device': str(self.device),
             'cuda_available': torch.cuda.is_available(),
             'dataset_info': self.dataset_info

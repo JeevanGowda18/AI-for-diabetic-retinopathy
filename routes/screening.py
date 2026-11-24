@@ -204,6 +204,11 @@ def run_ai():
 
     # 4. Multi-Model Hybrid AI Inference (ResNet-50 / DRClassifier + DR-Mini AI + RETFound)
     hybrid_engine = HybridPredictionEngine.get_instance()
+    if not hybrid_engine.primary_service.is_available or hybrid_engine.primary_service.model is None:
+        conn.close()
+        flash("Screening blocked: Valid trained deep learning weights are not installed. Please deploy model weights before conducting clinical screenings.", "danger")
+        return redirect(url_for('screening.new_screening', patient_id=patient['id']))
+
     tensor = prepare_tensor_for_model(enhanced_bgr, device=hybrid_engine.primary_service.device)
     hybrid_eval = hybrid_engine.predict(tensor, enhanced_bgr=enhanced_bgr)
 
@@ -373,6 +378,27 @@ def verify_screening(screening_id):
             doctor_assigned_grade = ?
         WHERE screening_id = ?
     """, (status, user_id, user_name, doctor_notes, now_ts, verified_grade, screening_id))
+
+    # Maintain clinical audit trail
+    try:
+        cursor.execute("""
+            INSERT INTO audit_logs (user_id, action, details)
+            VALUES (?, ?, ?)
+        """, (
+            user_id,
+            f"DOCTOR_VERIFICATION_{status.upper()}",
+            json.dumps({
+                'screening_id': screening_id,
+                'doctor_name': user_name,
+                'action': action,
+                'assigned_grade': verified_grade,
+                'doctor_notes': doctor_notes,
+                'timestamp': now_ts
+            })
+        ))
+    except Exception as log_err:
+        print(f"[Audit Log Error] Failed logging clinical verification: {log_err}")
+
     conn.commit()
     conn.close()
 

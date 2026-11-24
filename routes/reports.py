@@ -130,8 +130,10 @@ def email_report(screening_id):
 
     if result.get('mode') == 'smtp_dispatched':
         flash(f"Screening report successfully emailed to {recipient_email}.", "success")
+    elif result.get('mode') == 'smtp_failed':
+        flash(f"Email dispatch to {recipient_email} failed: {result.get('error')}. Incident logged to clinical audit trail.", "danger")
     else:
-        flash(f"Report queued and logged in audit log for dispatch to {recipient_email} (Rural PHC Offline Mode).", "info")
+        flash(f"Offline PHC Mode: Report logged to audit trail for dispatch to {recipient_email} once network connects.", "info")
 
     return redirect(request.referrer or url_for('screening.results', screening_id=screening_id))
 

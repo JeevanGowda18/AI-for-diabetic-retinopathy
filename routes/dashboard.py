@@ -78,6 +78,20 @@ def index():
     trend_rows = cursor.fetchall()
     trend_data = [{'date': r['screening_date'], 'count': r['daily_count']} for r in trend_rows][::-1]
 
+    # 6. Doctor Review Queue (Pending Screenings awaiting Clinical Verification - F-06)
+    cursor.execute("""
+        SELECT s.*, p.name as patient_name, p.patient_id as patient_code, p.village, p.age, p.gender
+        FROM screenings s
+        JOIN patients p ON s.patient_id = p.id
+        WHERE s.verification_status = 'Pending' OR s.verification_status IS NULL
+        ORDER BY s.created_at DESC
+        LIMIT 10
+    """)
+    pending_reviews = cursor.fetchall()
+
+    cursor.execute("SELECT COUNT(*) FROM screenings WHERE verification_status = 'Pending' OR verification_status IS NULL")
+    pending_count = cursor.fetchone()[0]
+
     conn.close()
 
     metrics = {
@@ -86,7 +100,8 @@ def index():
         'normal_cases': normal_cases,
         'positive_cases': positive_cases,
         'referable_cases': referable_cases,
-        'referral_rate': round((referable_cases / total_screenings * 100), 1) if total_screenings > 0 else 0.0
+        'referral_rate': round((referable_cases / total_screenings * 100), 1) if total_screenings > 0 else 0.0,
+        'pending_count': pending_count
     }
 
     return render_template(
@@ -96,6 +111,7 @@ def index():
         recent_screenings=recent_screenings,
         recent_patients=recent_patients,
         trend_data=trend_data,
+        pending_reviews=pending_reviews,
         dr_classes=Config.DR_CLASSES
     )
 

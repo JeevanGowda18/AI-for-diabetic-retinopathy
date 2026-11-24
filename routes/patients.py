@@ -100,6 +100,23 @@ def register():
             return redirect(url_for('patients.index'))
 
         conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Duplicate patient check (Feature 7: Prevent accidental duplicate patient records)
+        cursor.execute(
+            "SELECT id, patient_id, name, village FROM patients WHERE mobile = ? OR (LOWER(name) = ? AND LOWER(village) = ?)",
+            (mobile, name.lower(), village.lower())
+        )
+        existing = cursor.fetchone()
+        if existing:
+            conn.close()
+            flash(
+                f"Duplicate patient record prevented: Patient '{existing['name']}' from '{existing['village']}' "
+                f"is already registered under ID {existing['patient_id']}.",
+                "warning"
+            )
+            return redirect(url_for('patients.details', patient_id=existing['id']))
+
         patient_code = generate_patient_id(conn)
 
         try:

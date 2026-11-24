@@ -81,6 +81,16 @@ class Config:
         }
     }
 
+    # Model Prediction & Quality Gate Thresholds (F-04)
+    CONFIDENCE_THRESHOLD = float(os.environ.get('CONFIDENCE_THRESHOLD', 0.50))
+    TOP2_MARGIN_THRESHOLD = float(os.environ.get('TOP2_MARGIN_THRESHOLD', 0.15))
+
+    # Email Dispatch & SMTP Configuration (F-08)
+    SMTP_SERVER = os.environ.get('SMTP_SERVER', '')
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+    SMTP_USER = os.environ.get('SMTP_USER', '')
+    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+
     # Image Quality Thresholds
     QUALITY_THRESHOLDS = {
         'min_laplacian_var': 25.0,     # Blur cutoff
